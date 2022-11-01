@@ -20,6 +20,8 @@
 #include "lwip/sys.h"
 
 #include <esp_http_server.h>
+#include "esp_spiffs.h"
+
 
 #include "local.h"
 
@@ -151,6 +153,34 @@ void wifi_init_sta(void)
     }
 }
 
+void sendFile(httpd_req_t * req) {
+    char * filename = "/spiffs/index.html";
+    esp_err_t err;
+    char buf[128];
+    ssize_t buf_len;
+
+    // Check if destination file exists before renaming
+    // struct stat st;
+    // if (stat("/spiffs/foo.txt", &st) == 0) {
+    //     // Delete it if it exists
+    //     unlink("/spiffs/foo.txt");
+    // }
+
+    ESP_LOGI(TAG, "opening file %s", filename);
+    FILE * fp;
+    fp = fopen(filename, "r");
+    if (fp == NULL) {
+        ESP_LOGE(TAG, "open failed %d", (int)fp);
+    }
+    do {
+        buf_len = fread(&buf, 1, sizeof(buf), fp);
+        err = httpd_resp_send_chunk(req, &buf, buf_len);
+    } while (buf_len > 0 );
+    ESP_LOGI(TAG, "sent file");
+
+    fclose(fp);
+}
+
 /* An HTTP GET handler */
 static esp_err_t hello_get_handler(httpd_req_t *req)
 {
@@ -216,7 +246,9 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     /* Send response with custom headers and body set as the
      * string passed in user context*/
     const char* resp_str = (const char*) req->user_ctx;
-    httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
+    // httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
+
+    sendFile(req);
 
     /* After sending the HTTP response the old HTTP request
      * headers are lost. Check if HTTP request headers can be read now. */
@@ -267,6 +299,28 @@ void app_main(void)
       ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    esp_vfs_spiffs_conf_t conf = {
+      .base_path = "/spiffs",
+      .partition_label = NULL,
+      .max_files = 5,
+      .format_if_mount_failed = true
+    };
+
+    // Use settings defined above to initialize and mount SPIFFS filesystem.
+    // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
+    ret = esp_vfs_spiffs_register(&conf);
+
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount or format filesystem");
+        } else if (ret == ESP_ERR_NOT_FOUND) {
+            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+        }
+        return;
+    }
 
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
