@@ -153,6 +153,39 @@ void wifi_init_sta(void)
     }
 }
 
+esp_err_t handleWebSocket(httpd_req_t * req) {
+    if (req->method == HTTP_GET) {
+        ESP_LOGI(TAG, "websocket handshake");
+        return ESP_OK;
+    }
+
+    uint8_t buf[120];
+    httpd_ws_frame_t ws_frame;
+    ws_frame.type = HTTPD_WS_TYPE_TEXT;
+    ws_frame.payload = &buf;
+    ws_frame.len = 0;
+
+    httpd_ws_recv_frame(req, &ws_frame, sizeof(buf) - 1);
+    if (ws_frame.len < sizeof(buf)) {
+        buf[ws_frame.len] = 0;
+    }
+    ESP_LOGI(TAG, "received web socket frame: %s", ws_frame.payload);
+
+    esp_err_t ret = httpd_ws_send_frame(req, &ws_frame);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ws send failed %d", ret);
+    }
+    return ESP_OK;
+}
+
+static const httpd_uri_t ws_uri_handler_options = {
+    .uri = "/ws",
+    .method = HTTP_GET,
+    .handler = handleWebSocket,
+    .is_websocket = true,               // Mandatory: set to `true` to handler websocket protocol
+    .handle_ws_control_frames = false,  // Optional: set to `true` for the handler to receive control packets, too
+};
+
 void sendFile(httpd_req_t * req) {
     char * filename = "/spiffs/index.html";
     esp_err_t err;
@@ -278,6 +311,7 @@ void start_web_server() {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
         httpd_register_uri_handler(server, &hello);
+        httpd_register_uri_handler(server, &ws_uri_handler_options);
         // httpd_register_uri_handler(server, &echo);
         // httpd_register_uri_handler(server, &ctrl);
         #if CONFIG_EXAMPLE_BASIC_AUTH
