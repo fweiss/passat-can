@@ -1,3 +1,8 @@
+# Passat CAN
+A little project to create a CAN Bus device that uses a web socket UI
+
+## Notes
+
 project created with platform io
 
 from esp idf github, examples/wifi/getting_started/station/main,
@@ -23,3 +28,5 @@ Then it should coonect and show the IP address
 
 unfortunately, the log shows the wifi credentials
 
+## Links and references
+A little Arduino-based project: https://www.youtube.com/watch?v=_Ajn560TLIo
