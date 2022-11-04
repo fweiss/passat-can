@@ -1,7 +1,11 @@
 #include "canbus.h"
 
+#include "esp_log.h"
+
 #include "driver/gpio.h"
 #include "driver/can.h"
+
+static char const * const TAG = "CAN";
 
 CanBus::CanBus() {}
 
@@ -13,17 +17,17 @@ void CanBus::init() {
 
     //Install CAN driver
     if (can_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
-        printf("Driver installed\n");
+        ESP_LOGI(TAG, "Driver installed");
     } else {
-        printf("Failed to install driver\n");
+        ESP_LOGE(TAG, "Failed to install driver");
         return;
     }
 
     //Start CAN driver
     if (can_start() == ESP_OK) {
-        printf("Driver started\n");
+        ESP_LOGI(TAG, "Driver started");
     } else {
-        printf("Failed to start driver\n");
+        ESP_LOGE(TAG, "Failed to start driver");
         return;
     }
 
@@ -31,22 +35,22 @@ void CanBus::init() {
     //Wait for message to be received
     can_message_t message;
     if (can_receive(&message, pdMS_TO_TICKS(10000)) == ESP_OK) {
-        printf("Message received\n");
+        ESP_LOGI(TAG, "Message received");
     } else {
-        printf("Failed to receive message\n");
+        ESP_LOGE(TAG, "Failed to receive message");
         return;
     }
 
     //Process received message
     if (message.flags & CAN_MSG_FLAG_EXTD) {
-        printf("Message is in Extended Format\n");
+        ESP_LOGI(TAG, "Message is in Extended Format");
     } else {
-        printf("Message is in Standard Format\n");
+        ESP_LOGI(TAG, "Message is in Standard Format");
     }
-    printf("ID is %d\n", message.identifier);
+    ESP_LOGI(TAG, "ID is %d", message.identifier);
     if (!(message.flags & CAN_MSG_FLAG_RTR)) {
         for (int i = 0; i < message.data_length_code; i++) {
-            printf("Data byte %d = %d\n", i, message.data[i]);
+            ESP_LOGI(TAG, "Data byte %d = %d", i, message.data[i]);
         }
     }
 
