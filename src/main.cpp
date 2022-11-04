@@ -22,6 +22,7 @@
 #include <esp_http_server.h>
 #include "esp_spiffs.h"
 
+#include "canbus.h"
 
 #include "local.h"
 
@@ -61,6 +62,9 @@ static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
+extern "C" {
+	void app_main(void);
+}
 static const char *TAG = "wifi station";
 
 static int s_retry_num = 0;
@@ -113,19 +117,25 @@ void wifi_init_sta(void)
                                                         NULL,
                                                         &instance_got_ip));
 
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = EXAMPLE_ESP_WIFI_SSID,
-            .password = EXAMPLE_ESP_WIFI_PASS,
-            /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
-             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-	     * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-             */
-            .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
-            // .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-        },
-    };
+    // wifi_config_t wifi_config = {
+    //     .sta = {
+    //         .ssid = EXAMPLE_ESP_WIFI_SSID,
+    //         .password = EXAMPLE_ESP_WIFI_PASS,
+    //         /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
+    //          * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
+    //          * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
+	//      * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
+    //          */
+    //         .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
+    //         // .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
+    //     },
+    // };
+    wifi_config_t wifi_config{}; // important init to zero
+    strcpy((char*)wifi_config.sta.ssid, EXAMPLE_ESP_WIFI_SSID);
+    strcpy((char*)wifi_config.sta.password, EXAMPLE_ESP_WIFI_PASS);
+    // wifi_config.sta.password = EXAMPLE_ESP_WIFI_PASS;
+    wifi_config.sta.threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
     ESP_ERROR_CHECK(esp_wifi_start() );
@@ -162,7 +172,7 @@ esp_err_t handleWebSocket(httpd_req_t * req) {
     uint8_t buf[120];
     httpd_ws_frame_t ws_frame;
     ws_frame.type = HTTPD_WS_TYPE_TEXT;
-    ws_frame.payload = &buf;
+    ws_frame.payload = buf;
     ws_frame.len = 0;
 
     httpd_ws_recv_frame(req, &ws_frame, sizeof(buf) - 1);
@@ -187,7 +197,7 @@ static const httpd_uri_t ws_uri_handler_options = {
 };
 
 void sendFile(httpd_req_t * req) {
-    char * filename = "/spiffs/index.html";
+    char const  * filename = "/spiffs/index.html";
     esp_err_t err;
     char buf[128];
     ssize_t buf_len;
@@ -207,7 +217,7 @@ void sendFile(httpd_req_t * req) {
     }
     do {
         buf_len = fread(&buf, 1, sizeof(buf), fp);
-        err = httpd_resp_send_chunk(req, &buf, buf_len);
+        err = httpd_resp_send_chunk(req, buf, buf_len);
     } while (buf_len > 0 );
     ESP_LOGI(TAG, "sent file");
 
@@ -224,7 +234,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
      * extra byte for null termination */
     buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;
     if (buf_len > 1) {
-        buf = malloc(buf_len);
+        buf = (char*)malloc(buf_len);
         /* Copy null terminated value string into buffer */
         if (httpd_req_get_hdr_value_str(req, "Host", buf, buf_len) == ESP_OK) {
             ESP_LOGI(TAG, "Found header => Host: %s", buf);
@@ -234,7 +244,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
 
     buf_len = httpd_req_get_hdr_value_len(req, "Test-Header-2") + 1;
     if (buf_len > 1) {
-        buf = malloc(buf_len);
+        buf = (char*)malloc(buf_len);
         if (httpd_req_get_hdr_value_str(req, "Test-Header-2", buf, buf_len) == ESP_OK) {
             ESP_LOGI(TAG, "Found header => Test-Header-2: %s", buf);
         }
@@ -243,7 +253,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
 
     buf_len = httpd_req_get_hdr_value_len(req, "Test-Header-1") + 1;
     if (buf_len > 1) {
-        buf = malloc(buf_len);
+        buf = (char*)malloc(buf_len);
         if (httpd_req_get_hdr_value_str(req, "Test-Header-1", buf, buf_len) == ESP_OK) {
             ESP_LOGI(TAG, "Found header => Test-Header-1: %s", buf);
         }
@@ -254,7 +264,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
      * extra byte for null termination */
     buf_len = httpd_req_get_url_query_len(req) + 1;
     if (buf_len > 1) {
-        buf = malloc(buf_len);
+        buf = (char*)malloc(buf_len);
         if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
             ESP_LOGI(TAG, "Found URL query => %s", buf);
             char param[32];
@@ -297,7 +307,8 @@ static const httpd_uri_t hello = {
     .handler   = hello_get_handler,
     /* Let's pass response string in user
      * context to demonstrate it's usage */
-    .user_ctx  = "Hello World!"
+    .user_ctx  = NULL, //"Hello World!"
+    // HANDLE CONTROL FRAMES?
 };
 
 void start_web_server() {
@@ -317,12 +328,14 @@ void start_web_server() {
         #if CONFIG_EXAMPLE_BASIC_AUTH
         // httpd_register_basic_auth(server);
         #endif
-        return server;
+        // return server;
     }
 
     ESP_LOGI(TAG, "Error starting server!");
-    return NULL;
+    // return NULL;
 }
+
+CanBus canbus;
 
 void app_main(void)
 {
@@ -356,10 +369,21 @@ void app_main(void)
         return;
     }
 
+    // wifi_config_t wifi_config = {
+    //     .sta = {
+    //         .ssid = EXAMPLE_ESP_WIFI_SSID,
+    //         .password = EXAMPLE_ESP_WIFI_PASS,
+    //         .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
+    //         // .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
+    //     },
+    // };
+
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
 
     start_web_server();
+
+    canbus.init();
 
     vTaskDelay(10000 / portTICK_PERIOD_MS);
 

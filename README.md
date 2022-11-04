@@ -30,3 +30,5 @@ unfortunately, the log shows the wifi credentials
 
 ## Links and references
 A little Arduino-based project: https://www.youtube.com/watch?v=_Ajn560TLIo
+
+https://docs.espressif.com/projects/esp-idf/en/release-v3.3/api-reference/peripherals/can.html
