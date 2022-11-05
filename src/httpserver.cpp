@@ -14,21 +14,23 @@ HttpServer::HttpServer() {
 }
 
 void HttpServer::start() {
-    static const httpd_uri_t hello = {
+    static const httpd_uri_t defaultOptions = {
         .uri       = "/*",
         .method    = HTTP_GET,
         .handler   = hello_get_handler,
-        /* Let's pass response string in user
-        * context to demonstrate it's usage */
-        .user_ctx  = NULL, //"Hello World!"
-        // HANDLE CONTROL FRAMES?
+        .user_ctx  = NULL,
+        .is_websocket = false,
+        .handle_ws_control_frames = NULL,
+        .supported_subprotocol = NULL,
     };
-    static const httpd_uri_t ws_uri_handler_options = {
+    static const httpd_uri_t websocketOptions = {
         .uri = "/ws",
         .method = HTTP_GET,
         .handler = handleWebSocket,
+        .user_ctx  = NULL,
         .is_websocket = true,               // Mandatory: set to `true` to handler websocket protocol
         .handle_ws_control_frames = false,  // Optional: set to `true` for the handler to receive control packets, too
+        .supported_subprotocol = NULL,
     };
 
     this->server = NULL;
@@ -41,8 +43,8 @@ void HttpServer::start() {
     if (httpd_start(&this->server, &config) == ESP_OK) {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
-        httpd_register_uri_handler(server, &ws_uri_handler_options);
-        httpd_register_uri_handler(server, &hello);
+        httpd_register_uri_handler(server, &websocketOptions);
+        httpd_register_uri_handler(server, &defaultOptions);
         // httpd_register_uri_handler(server, &echo);
         // httpd_register_uri_handler(server, &ctrl);
         #if CONFIG_EXAMPLE_BASIC_AUTH
@@ -56,14 +58,11 @@ void HttpServer::start() {
 }
 
 void HttpServer::sendFile(httpd_req_t * req) {
-    // char const  * filename = "/spiffs/index.html";
-    esp_err_t err;
-
     std::string uri(req->uri);
     std::string filename = std::string("/spiffs") + uri;
     std::string mimeType = getMimeType(uri);
 
-    httpd_resp_set_type(req,  mimeType.c_str());
+    (void)httpd_resp_set_type(req,  mimeType.c_str());
 
     char buf[128];
     ssize_t buf_len;
@@ -76,6 +75,7 @@ void HttpServer::sendFile(httpd_req_t * req) {
     // }
 
     ESP_LOGI(TAG, "opening file %s", filename.c_str());
+    esp_err_t err = ESP_OK;
     FILE * fp;
     fp = fopen(filename.c_str(), "r");
     if (fp == NULL) {
@@ -84,7 +84,7 @@ void HttpServer::sendFile(httpd_req_t * req) {
     do {
         buf_len = fread(&buf, 1, sizeof(buf), fp);
         err = httpd_resp_send_chunk(req, buf, buf_len);
-    } while (buf_len > 0 );
+    } while (buf_len > 0 && err == ESP_OK);
     ESP_LOGI(TAG, "sent file");
 
     fclose(fp);
@@ -153,7 +153,7 @@ esp_err_t HttpServer::hello_get_handler(httpd_req_t *req)
 
     /* Send response with custom headers and body set as the
      * string passed in user context*/
-    const char* resp_str = (const char*) req->user_ctx;
+    // const char* resp_str = (const char*) req->user_ctx;
     // httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
 
     sendFile(req);
