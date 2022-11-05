@@ -1,5 +1,8 @@
 #include "httpserver.h"
 
+#include <string>
+#include <unordered_map>
+
 #include "esp_system.h"
 #include "esp_log.h"
 #include "esp_http_server.h"
@@ -12,7 +15,7 @@ HttpServer::HttpServer() {
 
 void HttpServer::start() {
     static const httpd_uri_t hello = {
-        .uri       = "/hello",
+        .uri       = "/*",
         .method    = HTTP_GET,
         .handler   = hello_get_handler,
         /* Let's pass response string in user
@@ -31,14 +34,15 @@ void HttpServer::start() {
     this->server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.lru_purge_enable = true;
+    config.uri_match_fn = httpd_uri_match_wildcard;
 
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
     if (httpd_start(&this->server, &config) == ESP_OK) {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
-        httpd_register_uri_handler(server, &hello);
         httpd_register_uri_handler(server, &ws_uri_handler_options);
+        httpd_register_uri_handler(server, &hello);
         // httpd_register_uri_handler(server, &echo);
         // httpd_register_uri_handler(server, &ctrl);
         #if CONFIG_EXAMPLE_BASIC_AUTH
@@ -52,8 +56,15 @@ void HttpServer::start() {
 }
 
 void HttpServer::sendFile(httpd_req_t * req) {
-    char const  * filename = "/spiffs/index.html";
+    // char const  * filename = "/spiffs/index.html";
     esp_err_t err;
+
+    std::string uri(req->uri);
+    std::string filename = std::string("/spiffs") + uri;
+    std::string mimeType = getMimeType(uri);
+
+    httpd_resp_set_type(req,  mimeType.c_str());
+
     char buf[128];
     ssize_t buf_len;
 
@@ -64,9 +75,9 @@ void HttpServer::sendFile(httpd_req_t * req) {
     //     unlink("/spiffs/foo.txt");
     // }
 
-    ESP_LOGI(TAG, "opening file %s", filename);
+    ESP_LOGI(TAG, "opening file %s", filename.c_str());
     FILE * fp;
-    fp = fopen(filename, "r");
+    fp = fopen(filename.c_str(), "r");
     if (fp == NULL) {
         ESP_LOGE(TAG, "open failed %d", (int)fp);
     }
@@ -178,4 +189,21 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
         ESP_LOGE(TAG, "ws send failed %d", ret);
     }
     return ESP_OK;
+}
+
+std::string HttpServer::getMimeType(std::string path) {
+    std::string suffix = path.substr(path.find_last_of(".") + 1);
+    static std::unordered_map<std::string, std::string> getMimeType {
+        { "html", "text/html" },
+        { "js", "application/javascript; charset=utf-8" },
+        { "css", "text/css" },
+        { "ico", "image/ico" },
+    };
+    // or C++20 contains()
+    try {
+        return getMimeType.at(suffix);
+    }
+    catch (...) {
+        return std::string("text/plain");
+    }
 }

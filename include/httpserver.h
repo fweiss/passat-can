@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esp_http_server.h"
+#include <unordered_map>
 
 class HttpServer {
 public:
@@ -13,4 +14,5 @@ private:
     static void sendFile(httpd_req_t * req);
     static esp_err_t hello_get_handler(httpd_req_t *req);
     static esp_err_t handleWebSocket(httpd_req_t *req);
+    static std::string getMimeType(std::string path);
 };
