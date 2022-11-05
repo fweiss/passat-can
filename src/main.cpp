@@ -23,6 +23,7 @@
 #include "esp_spiffs.h"
 
 #include "canbus.h"
+#include "httpserver.h"
 
 #include "local.h"
 
@@ -336,6 +337,7 @@ void start_web_server() {
 }
 
 CanBus canbus;
+HttpServer httpServer;
 
 void app_main(void)
 {
@@ -381,7 +383,8 @@ void app_main(void)
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
 
-    start_web_server();
+    // start_web_server();
+    httpServer.start();
 
     canbus.init();
 
