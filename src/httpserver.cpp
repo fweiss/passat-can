@@ -10,6 +10,9 @@
 
 char const * const TAG = "HTTP";
 
+int HttpServer::fd = 0;
+std::function<void(uint8_t * payload, size_t len)> HttpServer::onFrame = [] (uint8_t * payload, size_t len) {};
+
 HttpServer::HttpServer() {
 }
 
@@ -55,39 +58,6 @@ void HttpServer::start() {
 
     ESP_LOGI(TAG, "Error starting server!");
     // return NULL;
-}
-
-void HttpServer::sendFile(httpd_req_t * req) {
-    std::string uri(req->uri);
-    std::string filename = std::string("/spiffs") + uri;
-    std::string mimeType = getMimeType(uri);
-
-    (void)httpd_resp_set_type(req,  mimeType.c_str());
-
-    char buf[128];
-    ssize_t buf_len;
-
-    // Check if destination file exists before renaming
-    // struct stat st;
-    // if (stat("/spiffs/foo.txt", &st) == 0) {
-    //     // Delete it if it exists
-    //     unlink("/spiffs/foo.txt");
-    // }
-
-    ESP_LOGI(TAG, "opening file %s", filename.c_str());
-    esp_err_t err = ESP_OK;
-    FILE * fp;
-    fp = fopen(filename.c_str(), "r");
-    if (fp == NULL) {
-        ESP_LOGE(TAG, "open failed %d", (int)fp);
-    }
-    do {
-        buf_len = fread(&buf, 1, sizeof(buf), fp);
-        err = httpd_resp_send_chunk(req, buf, buf_len);
-    } while (buf_len > 0 && err == ESP_OK);
-    ESP_LOGI(TAG, "sent file");
-
-    fclose(fp);
 }
 
 esp_err_t HttpServer::hello_get_handler(httpd_req_t *req)
@@ -172,6 +142,10 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
         return ESP_OK;
     }
 
+    // save socket descriptor for subsequent async sends
+    fd = httpd_req_to_sockfd(req);
+    ESP_LOGI(TAG, "saved fd %d", fd);
+
     uint8_t buf[120];
     httpd_ws_frame_t ws_frame;
     ws_frame.type = HTTPD_WS_TYPE_TEXT;
@@ -183,11 +157,12 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
         buf[ws_frame.len] = 0;
     }
     ESP_LOGI(TAG, "received web socket frame: %s", ws_frame.payload);
+    onFrame(ws_frame.payload, ws_frame.len);
 
-    esp_err_t ret = httpd_ws_send_frame(req, &ws_frame);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "ws send failed %d", ret);
-    }
+    // esp_err_t ret = httpd_ws_send_frame(req, &ws_frame);
+    // if (ret != ESP_OK) {
+    //     ESP_LOGE(TAG, "ws send failed %d", ret);
+    // }
     return ESP_OK;
 }
 
@@ -206,4 +181,53 @@ std::string HttpServer::getMimeType(std::string path) {
     catch (...) {
         return std::string("text/plain");
     }
+}
+
+void HttpServer::sendFrame(std::string data) {
+    esp_err_t err;
+    httpd_ws_frame_t ws_pkt = {
+        .final = true,
+        .fragmented = false, 
+        .type = HTTPD_WS_TYPE_TEXT,
+        .payload = (uint8_t *)data.c_str(),
+        .len = data.size(),
+    };    
+    // async does not require the httpd_req_t
+    err = httpd_ws_send_frame_async(server, fd, &ws_pkt);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error enqueuing frame 0x%x %d", err, fd);
+    }
+}
+
+void HttpServer::sendFile(httpd_req_t * req) {
+    std::string uri(req->uri);
+    std::string filename = std::string("/spiffs") + uri;
+    std::string mimeType = getMimeType(uri);
+
+    (void)httpd_resp_set_type(req,  mimeType.c_str());
+
+    char buf[128];
+    ssize_t buf_len;
+
+    // Check if destination file exists before renaming
+    // struct stat st;
+    // if (stat("/spiffs/foo.txt", &st) == 0) {
+    //     // Delete it if it exists
+    //     unlink("/spiffs/foo.txt");
+    // }
+
+    ESP_LOGI(TAG, "opening file %s", filename.c_str());
+    esp_err_t err = ESP_OK;
+    FILE * fp;
+    fp = fopen(filename.c_str(), "r");
+    if (fp == NULL) {
+        ESP_LOGE(TAG, "open failed %d", (int)fp);
+    }
+    do {
+        buf_len = fread(&buf, 1, sizeof(buf), fp);
+        err = httpd_resp_send_chunk(req, buf, buf_len);
+    } while (buf_len > 0 && err == ESP_OK);
+    ESP_LOGI(TAG, "sent file");
+
+    fclose(fp);
 }

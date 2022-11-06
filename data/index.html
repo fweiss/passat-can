@@ -11,12 +11,7 @@
         </head>
     <body>
         <h1>Passat CAN</h1>
+        <button id="request">Request CAN Frame</button>
+        <input id="frame" type="text" size="64">
     </body>
-    <script>
-        let wes = new WebSocket('ws://' + window.location.host + '/ws')
-        wes.onmessage = (event) => {
-            console.log("ws message " + event.data)
-        }
-        window.setTimeout(() => { wes.send('hello websocket') }, 5000)
-    </script>
 </html>

@@ -211,9 +211,21 @@ void app_main(void)
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
 
-    // start_web_server();
+    HttpServer::onFrame = [] (uint8_t * payload, size_t len) {
+        canbus.triggerRead();
+    };
     httpServer.start();
 
+    canbus.onRecvFrame([] (can_message_t & message) {
+        //Process received message
+        if (message.flags & CAN_MSG_FLAG_EXTD) {
+            ESP_LOGI(TAG, "Message is in Extended Format");
+        } else {
+            ESP_LOGI(TAG, "Message is in Standard Format");
+        }
+        ESP_LOGI(TAG, "%s", canbus.messageToString(message).c_str());
+        httpServer.sendFrame(canbus.messageToString(message).c_str());
+    });
     canbus.init();
 
     vTaskDelay(10000 / portTICK_PERIOD_MS);

@@ -28,6 +28,15 @@ Then it should coonect and show the IP address
 
 unfortunately, the log shows the wifi credentials
 
+arch
+start can bus controller
+start http server
+ws connect
+
+wifi(tbd)
+http_server(stopped, started, process_request, ws_connected, ws_receive_frame, ws_send_frame)
+can_bus(stopped, started, receive_message, transmit_message)
+
 ## Links and references
 A little Arduino-based project: https://www.youtube.com/watch?v=_Ajn560TLIo
 

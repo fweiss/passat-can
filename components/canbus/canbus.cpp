@@ -7,7 +7,9 @@
 
 static char const * const TAG = "CAN";
 
-CanBus::CanBus() {}
+CanBus::CanBus() {
+     recvCallback = [] (can_message_t & message) {};
+ }
 
 void CanBus::init() {
     //Initialize configuration structures using macro initializers
@@ -41,17 +43,54 @@ void CanBus::init() {
         return;
     }
 
-    //Process received message
-    if (message.flags & CAN_MSG_FLAG_EXTD) {
-        ESP_LOGI(TAG, "Message is in Extended Format");
-    } else {
-        ESP_LOGI(TAG, "Message is in Standard Format");
-    }
-    ESP_LOGI(TAG, "ID is %d", message.identifier);
-    if (!(message.flags & CAN_MSG_FLAG_RTR)) {
-        for (int i = 0; i < message.data_length_code; i++) {
-            ESP_LOGI(TAG, "Data byte %d = %d", i, message.data[i]);
-        }
-    }
+    recvCallback(message);
 
+    // //Process received message
+    // if (message.flags & CAN_MSG_FLAG_EXTD) {
+    //     ESP_LOGI(TAG, "Message is in Extended Format");
+    // } else {
+    //     ESP_LOGI(TAG, "Message is in Standard Format");
+    // }
+    // ESP_LOGI(TAG, "ID is %d", message.identifier);
+    // if (!(message.flags & CAN_MSG_FLAG_RTR)) {
+    //     for (int i = 0; i < message.data_length_code; i++) {
+    //         ESP_LOGI(TAG, "Data byte %d = %d", i, message.data[i]);
+    //     }
+    // }
+
+}
+
+void CanBus::onRecvFrame(std::function<void(can_message_t & message)> callback) {
+    recvCallback = callback;
+}
+
+void CanBus::sendFrame(can_message_t & message) {
+    esp_err_t err;
+    err = can_transmit(&message, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "tramsit message failed");
+    }
+}
+
+void CanBus::triggerRead() {
+    //Wait for message to be received
+    can_message_t message;
+    if (can_receive(&message, pdMS_TO_TICKS(10000)) == ESP_OK) {
+        ESP_LOGI(TAG, "Message received");
+    } else {
+        ESP_LOGE(TAG, "Failed to receive message");
+        return;
+    }
+    recvCallback(message); 
+}
+
+std::string CanBus::messageToString(can_message_t & message) {
+    char buf[20];
+    snprintf(buf, sizeof(buf), "0x%x (%d)", message.identifier, message.identifier);
+    std::string out(buf);
+    for (int i = 0; i < message.data_length_code; i++) {
+        snprintf(buf, sizeof(buf), " %0x", message.data[i]);
+        out += std::string(buf);
+    }
+    return out;
 }
