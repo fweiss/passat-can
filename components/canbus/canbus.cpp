@@ -16,6 +16,8 @@ void CanBus::init() {
     can_general_config_t g_config = CAN_GENERAL_CONFIG_DEFAULT(GPIO_NUM_21, GPIO_NUM_22, CAN_MODE_NORMAL);
     can_timing_config_t t_config = CAN_TIMING_CONFIG_500KBITS();
     can_filter_config_t f_config = CAN_FILTER_CONFIG_ACCEPT_ALL();
+    f_config.acceptance_code = (0x320 << 21);
+    f_config.acceptance_mask = ~(0x7ff << 21);
 
     //Install CAN driver
     if (can_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {

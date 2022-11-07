@@ -40,4 +40,6 @@ can_bus(stopped, started, receive_message, transmit_message)
 ## Links and references
 A little Arduino-based project: https://www.youtube.com/watch?v=_Ajn560TLIo
 
+A nice project similar to mine: https://github.com/MagnusThome/RejsaCAN-ESP32
+
 https://docs.espressif.com/projects/esp-idf/en/release-v3.3/api-reference/peripherals/can.html

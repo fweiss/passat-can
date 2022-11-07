@@ -1,5 +1,6 @@
 $(() => {
     console.log('hello')
+    let count = 0;
 
     let wes = new WebSocket('ws://' + window.location.host + '/ws')
     wes.onopen = (event) => {
@@ -12,6 +13,7 @@ $(() => {
         console.log('websocket error')
     }
     wes.onmessage = (event) => {
+        count++;
         console.log("ws message " + event.data)
         $('#frame').val(event.data)
     }
@@ -20,4 +22,10 @@ $(() => {
     $('#request').click(() => {
         wes.send('request')
     })
+    const sample = 1000 // ms
+    setInterval(() => {
+        let rate = count / (sample / 1000)
+        count = 0
+        $('#rate').val(rate)
+    }, sample)
 })

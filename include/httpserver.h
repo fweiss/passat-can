@@ -13,6 +13,7 @@ public:
     void sendFrame(std::string frame);
     // static?
     static std::function<void(uint8_t * payload, size_t len)> onFrame;
+    bool isWebsocketConnected();
 private:
     httpd_handle_t server;
     static void sendFile(httpd_req_t * req);

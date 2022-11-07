@@ -224,11 +224,18 @@ void app_main(void)
             ESP_LOGI(TAG, "Message is in Standard Format");
         }
         ESP_LOGI(TAG, "%s", canbus.messageToString(message).c_str());
-        httpServer.sendFrame(canbus.messageToString(message).c_str());
+
+        if (httpServer.isWebsocketConnected()) {
+            httpServer.sendFrame(canbus.messageToString(message).c_str());
+        }
     });
     canbus.init();
 
-    vTaskDelay(10000 / portTICK_PERIOD_MS);
+    // vTaskDelay(10000 / portTICK_PERIOD_MS);
+    while (true) {
+        canbus.triggerRead();
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
 
     ESP_LOGI(TAG, "exit");
 }

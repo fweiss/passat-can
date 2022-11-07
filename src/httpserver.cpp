@@ -199,6 +199,10 @@ void HttpServer::sendFrame(std::string data) {
     }
 }
 
+bool HttpServer::isWebsocketConnected() {
+    return fd != 0;
+}
+
 void HttpServer::sendFile(httpd_req_t * req) {
     std::string uri(req->uri);
     std::string filename = std::string("/spiffs") + uri;
