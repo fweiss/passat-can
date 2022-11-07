@@ -32,16 +32,21 @@ int main() {
         nsapi_error_t error = 0;
         TCPSocket * clientSocket;
         clientSocket = server.accept(&error);
-        // if (error != 0) {
+        if (error != 0) {
             printf("accept failed: %d\n", error);
-        // }
+        }
 
         char rxBuf[512] = { 0 };
-        error = clientSocket->recv(rxBuf, sizeof(rxBuf));
-        printf("receive: error: %d data: %s\n", error, rxBuf);
+        nsapi_size_or_error_t recvResult;
+        recvResult = clientSocket->recv(rxBuf, sizeof(rxBuf));
+        if (recvResult < 0) { // todo what about 0?
+            printf("recv error: %d\n", recvResult);
+        }
+        // printf("receive: size: %d data: %s\n", recvResult, rxBuf);
 
         char txBuf[512] = { 0 };
         char response[] = "howdy!";
+        // fixme line ending \r\n
         sprintf(txBuf, "HTTP/1.1 200 OK\nContent-Length: %d\nContent-Type: text\nConnection: Close\n\n%s\n", strlen(response), response);
         printf("header: %s\n", txBuf);
         clientSocket->send(txBuf, strlen(txBuf));

@@ -46,4 +46,7 @@ https://datatracker.ietf.org/doc/html/rfc6455
 https://crossbar.io/docs/WebSocket-Compliance-Testing/
 python test suite, includes fuzzing
 
+https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers
+detailed walkthrough of the WS protocol
+
 
