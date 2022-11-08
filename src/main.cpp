@@ -25,6 +25,10 @@
 #include "canbus.h"
 #include "httpserver.h"
 
+// redefine these in local.h instead of via menuconfig
+// menuconfig unfortunately saves these secrets in sdkconfig
+#undef CONFIG_ESP_WIFI_SSID
+#undef CONFIG_ESP_WIFI_PASSWORD
 #include "local.h"
 
 /* The examples use WiFi configuration that you can set via project configuration menu

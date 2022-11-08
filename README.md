@@ -43,3 +43,12 @@ A little Arduino-based project: https://www.youtube.com/watch?v=_Ajn560TLIo
 A nice project similar to mine: https://github.com/MagnusThome/RejsaCAN-ESP32
 
 https://docs.espressif.com/projects/esp-idf/en/release-v3.3/api-reference/peripherals/can.html
+
+A simple demo of CAN to WS with ESP32 and MCP2515 for mining truck.
+https://www.youtube.com/watch?v=05ihq09tkkQ
+
+Nice PiHat from Copperhill
+https://copperhilltech.com/raspberry-pi-4-4gb-with-pican-dual-can-bus-hat/
+
+Pretty nice little CAN-Wifi project
+https://github.com/NewTec-GmbH/esp32-can-iot
