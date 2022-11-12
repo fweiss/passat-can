@@ -2,10 +2,20 @@ $(() => {
     let count = 0
 
     let wes = new WSConnection()
-    wes.onmessage = (event) => {
+
+    function array2hex(buf) {
+        return [...new Uint8Array(buf)]
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join(' ')
+    }
+    wes.onmessage = (data) => {
         count++;
-        // console.log("ws message " + event.data)
-        $('#frame').val(event.data)
+        const lttleEndian = true
+        // console.log("ws message " + data)
+        const view = new DataView(data)
+        const x = array2hex(new ArrayBuffer(data, 2))
+        const y = data.slice(2)
+        $('#frame').val(view.getUint16(0, lttleEndian) + ' ' + array2hex(data.slice(2)))
     }
 
     $('#request').click(() => {
@@ -35,7 +45,7 @@ class WSConnection {
         }
         this.onMessage = () => {}
         this.wes.onmessage = (event) => {
-            this.onmessage(event)
+            this.onmessage(event.data)
         }
         setInterval(() => {
             console.log('websocket readystate: ' + this.statusString(this.wes.readyState))

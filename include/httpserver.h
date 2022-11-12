@@ -13,6 +13,7 @@ public:
 
     void start();
     void sendFrame(std::string frame);
+    void sendFrame(uint8_t * data, size_t const length);
     // static?
     static std::function<void(uint8_t * payload, size_t len)> onFrame;
     bool isWebsocketConnected();

@@ -230,7 +230,13 @@ void app_main(void)
         ESP_LOGI(TAG, "%s", canbus.messageToString(message).c_str());
 
         if (httpServer.isWebsocketConnected()) {
-            httpServer.sendFrame(canbus.messageToString(message).c_str());
+            // httpServer.sendFrame(canbus.messageToString(message).c_str());
+            static uint8_t data[TWAI_FRAME_MAX_DLC + 2];
+            // big/little endian?
+            data[0] = message.identifier & 0xff;
+            data[1] = (message.identifier >> 8) & 0xff;
+            memcpy(&data[2], message.data, message.data_length_code);
+            httpServer.sendFrame(data, message.data_length_code + 2);
         }
     });
     canbus.init();

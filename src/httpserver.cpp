@@ -211,6 +211,23 @@ void HttpServer::sendFrame(std::string data) {
     }
 }
 
+void HttpServer::sendFrame(uint8_t * data, size_t const length) {
+    esp_err_t err;
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
+    ws_pkt.final = true;
+    ws_pkt.fragmented = false;
+    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
+    ws_pkt.payload = data;
+    ws_pkt.len = length;
+
+    // async does not require the httpd_req_t
+    err = httpd_ws_send_frame_async(server, fd, &ws_pkt);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error enqueuing frame 0x%x %d", err, fd);
+    }    
+}
+
 bool HttpServer::isWebsocketConnected() {
     return fd != 0;
 }
