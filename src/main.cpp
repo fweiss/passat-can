@@ -222,11 +222,11 @@ void app_main(void)
 
     canbus.onRecvFrame([] (can_message_t & message) {
         //Process received message
-        if (message.flags & CAN_MSG_FLAG_EXTD) {
-            ESP_LOGI(TAG, "Message is in Extended Format");
-        } else {
-            ESP_LOGI(TAG, "Message is in Standard Format");
-        }
+        // if (message.flags & CAN_MSG_FLAG_EXTD) {
+        //     ESP_LOGI(TAG, "Message is in Extended Format");
+        // } else {
+        //     ESP_LOGI(TAG, "Message is in Standard Format");
+        // }
         ESP_LOGI(TAG, "%s", canbus.messageToString(message).c_str());
 
         if (httpServer.isWebsocketConnected()) {

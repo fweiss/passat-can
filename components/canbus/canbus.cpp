@@ -16,6 +16,8 @@ void CanBus::init() {
     can_general_config_t g_config = CAN_GENERAL_CONFIG_DEFAULT(GPIO_NUM_21, GPIO_NUM_22, CAN_MODE_NORMAL);
     can_timing_config_t t_config = CAN_TIMING_CONFIG_500KBITS();
     can_filter_config_t f_config = CAN_FILTER_CONFIG_ACCEPT_ALL();
+
+    g_config.tx_queue_len = 20; // did not solve "could not decode a text frame as utf-8"
     f_config.acceptance_code = (0x320 << 21);
     f_config.acceptance_mask = ~(0x7ff << 21);
 
@@ -77,7 +79,8 @@ void CanBus::sendFrame(can_message_t & message) {
 void CanBus::triggerRead() {
     //Wait for message to be received
     can_message_t message;
-    if (can_receive(&message, pdMS_TO_TICKS(10000)) == ESP_OK) {
+    esp_err_t err = can_receive(&message, pdMS_TO_TICKS(10000));
+    if (err == ESP_OK) {
         ESP_LOGI(TAG, "Message received");
     } else {
         ESP_LOGE(TAG, "Failed to receive message");

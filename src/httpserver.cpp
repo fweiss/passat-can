@@ -10,6 +10,8 @@
 
 char const * const TAG = "HTTP";
 
+//maybe use singleton instead of statics
+httpd_handle_t HttpServer::server;
 int HttpServer::fd = 0;
 std::function<void(uint8_t * payload, size_t len)> HttpServer::onFrame = [] (uint8_t * payload, size_t len) {};
 
@@ -146,6 +148,8 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
     fd = httpd_req_to_sockfd(req);
     ESP_LOGI(TAG, "saved fd %d", fd);
 
+    startPingTimer();
+
     uint8_t buf[120];
     httpd_ws_frame_t ws_frame;
     ws_frame.type = HTTPD_WS_TYPE_TEXT;
@@ -185,13 +189,21 @@ std::string HttpServer::getMimeType(std::string path) {
 
 void HttpServer::sendFrame(std::string data) {
     esp_err_t err;
-    httpd_ws_frame_t ws_pkt = {
-        .final = true,
-        .fragmented = false, 
-        .type = HTTPD_WS_TYPE_TEXT,
-        .payload = (uint8_t *)data.c_str(),
-        .len = data.size(),
-    };    
+    // httpd_ws_frame_t ws_pkt = {
+    //     .final = true,
+    //     .fragmented = false, 
+    //     .type = HTTPD_WS_TYPE_BINARY, // was text
+    //     .payload = (uint8_t *)data.c_str(),
+    //     .len = data.size(),
+    // };
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
+    ws_pkt.final = true;
+    ws_pkt.fragmented = false;
+    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
+    ws_pkt.payload = (uint8_t *)data.c_str();
+    ws_pkt.len = data.size();
+
     // async does not require the httpd_req_t
     err = httpd_ws_send_frame_async(server, fd, &ws_pkt);
     if (err != ESP_OK) {
@@ -234,4 +246,32 @@ void HttpServer::sendFile(httpd_req_t * req) {
     ESP_LOGI(TAG, "sent file");
 
     fclose(fp);
+}
+
+void HttpServer::startPingTimer() {
+    TickType_t const timerPeriod= pdMS_TO_TICKS(1000);
+    bool const autoReload = true;
+    TimerHandle_t handle = xTimerCreate("ping timer", timerPeriod, autoReload, nullptr, HttpServer::pingFunction);
+    if (handle == NULL) {
+        ESP_LOGE(TAG, "ping timer create error");
+    }
+}
+
+void HttpServer::pingFunction(void*) {
+    esp_err_t err;
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
+    ws_pkt.final = true;
+    ws_pkt.fragmented = false;
+    ws_pkt.type = HTTPD_WS_TYPE_PING;
+    ws_pkt.payload = nullptr;
+    ws_pkt.len = 0;
+
+    // async does not require the httpd_req_t
+    err = httpd_ws_send_frame_async(server, fd, &ws_pkt);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error enqueuing ping frame 0x%x", err);
+    } else {
+        ESP_LOGI(TAG, "sent ping frame");
+    }
 }

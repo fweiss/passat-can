@@ -1,6 +1,8 @@
 #pragma once
 
 #include "esp_http_server.h"
+#include "freertos/timers.h"
+
 #include <unordered_map>
 #include <functional>
 
@@ -15,11 +17,13 @@ public:
     static std::function<void(uint8_t * payload, size_t len)> onFrame;
     bool isWebsocketConnected();
 private:
-    httpd_handle_t server;
+    static httpd_handle_t server;
+    static int fd;
+
     static void sendFile(httpd_req_t * req);
     static esp_err_t hello_get_handler(httpd_req_t *req);
     static esp_err_t handleWebSocket(httpd_req_t *req);
     static std::string getMimeType(std::string path);
-    // fixme should it be static?
-    static int fd;
+    static void startPingTimer();
+    static void pingFunction(void*);
 };
