@@ -18,8 +18,8 @@ void CanBus::init() {
     can_filter_config_t f_config = CAN_FILTER_CONFIG_ACCEPT_ALL();
 
     g_config.tx_queue_len = 20; // did not solve "could not decode a text frame as utf-8"
-    f_config.acceptance_code = (0x320 << 21);
-    f_config.acceptance_mask = ~(0x7ff << 21);
+    // f_config.acceptance_code = (0x320 << 21);
+    // f_config.acceptance_mask = ~(0x7ff << 21);
 
     //Install CAN driver
     if (can_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {

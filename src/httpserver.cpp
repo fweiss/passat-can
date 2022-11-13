@@ -55,7 +55,7 @@ void HttpServer::start() {
         #if CONFIG_EXAMPLE_BASIC_AUTH
         // httpd_register_basic_auth(server);
         #endif
-        // return server;
+        return;
     }
 
     ESP_LOGI(TAG, "Error starting server!");
@@ -141,6 +141,9 @@ esp_err_t HttpServer::hello_get_handler(httpd_req_t *req)
 esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
     if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "websocket handshake");
+        fd = httpd_req_to_sockfd(req);
+        ESP_LOGI(TAG, "saved fd %d", fd);
+
         return ESP_OK;
     }
 
@@ -271,6 +274,11 @@ void HttpServer::startPingTimer() {
     TimerHandle_t handle = xTimerCreate("ping timer", timerPeriod, autoReload, nullptr, HttpServer::pingFunction);
     if (handle == NULL) {
         ESP_LOGE(TAG, "ping timer create error");
+    } else {
+        BaseType_t err = xTimerStart(handle, 0);
+        if (err != pdPASS) {
+            ESP_LOGE(TAG, "start ping timer failed");
+        }
     }
 }
 

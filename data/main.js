@@ -10,17 +10,19 @@ $(() => {
     }
     wes.onmessage = (data) => {
         count++;
-        const lttleEndian = true
+        const littleEndian = true
         // console.log("ws message " + data)
         const view = new DataView(data)
-        const x = array2hex(new ArrayBuffer(data, 2))
-        const y = data.slice(2)
-        $('#frame').val(view.getUint16(0, lttleEndian) + ' ' + array2hex(data.slice(2)))
+        // const x = array2hex(new ArrayBuffer(data, 2))
+        // const y = data.slice(2)
+        const fd = view.getUint16(0, littleEndian)
+        $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(data.slice(2)))
     }
 
     $('#request').click(() => {
         wes.send('request')
     })
+
     const sample = 1000 // ms
     setInterval(() => {
         let rate = count / (sample / 1000)
@@ -49,9 +51,10 @@ class WSConnection {
         }
         setInterval(() => {
             console.log('websocket readystate: ' + this.statusString(this.wes.readyState))
-            if (this.wes.readyState == WebSocket.OPEN) {
-                this.wes.send('sync')
-            }
+            // FIXME let the server manage the ping
+            // if (this.wes.readyState == WebSocket.OPEN) {
+            //     this.wes.send('sync')
+            // }
         }, 1000)
     }
     init() {
