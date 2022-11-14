@@ -2,6 +2,7 @@ $(() => {
     let count = 0
 
     let wes = new WSConnection()
+    let summary = new Summary()
 
     function array2hex(buf) {
         return [...new Uint8Array(buf)]
@@ -17,10 +18,13 @@ $(() => {
         // const y = data.slice(2)
         const fd = view.getUint16(0, littleEndian)
         $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(data.slice(2)))
+        summary.addId(fd)
     }
 
-    $('#request').click(() => {
-        wes.send('request')
+    $(summary).on('update', event => {
+        const list = summary.ids.join(',')
+        console.log(list)
+        $('#summary').val(list)
     })
 
     const sample = 1000 // ms
@@ -71,5 +75,17 @@ class WSConnection {
             [WebSocket.CLOSED]: 'closed',
         }
         return map[readyState] || 'unknown'
+    }
+}
+
+class Summary {
+    constructor() {
+        this.ids = []
+    }
+    addId(id) {
+        if ( ! this.ids.includes(id)) {
+            this.ids.push(id)
+            $(this).trigger('update')
+        }
     }
 }

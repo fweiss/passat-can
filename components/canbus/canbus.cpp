@@ -81,7 +81,7 @@ void CanBus::triggerRead() {
     can_message_t message;
     esp_err_t err = can_receive(&message, pdMS_TO_TICKS(10000));
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "Message received");
+        // ESP_LOGI(TAG, "Message received");
     } else {
         ESP_LOGE(TAG, "Failed to receive message");
         return;

@@ -227,7 +227,7 @@ void app_main(void)
         // } else {
         //     ESP_LOGI(TAG, "Message is in Standard Format");
         // }
-        ESP_LOGI(TAG, "%s", canbus.messageToString(message).c_str());
+        // ESP_LOGI(TAG, "%s", canbus.messageToString(message).c_str());
 
         if (httpServer.isWebsocketConnected()) {
             // httpServer.sendFrame(canbus.messageToString(message).c_str());

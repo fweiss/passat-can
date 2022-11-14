@@ -52,3 +52,7 @@ https://copperhilltech.com/raspberry-pi-4-4gb-with-pican-dual-can-bus-hat/
 
 Pretty nice little CAN-Wifi project
 https://github.com/NewTec-GmbH/esp32-can-iot
+
+brief intro to j1939
+https://copperhilltech.com/a-brief-introduction-to-the-sae-j1939-protocol
+

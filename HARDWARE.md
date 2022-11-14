@@ -20,6 +20,15 @@ Direct
 VDD 7 V max
 IDD 75 mA max
 
+## MCP 25625
+5V + 3.3V
+XTAL + caps
+filter caps
+
 ## 12 v buck 5 V
 See digikey list
+
+## MCP25625 click
+$24
+
 
