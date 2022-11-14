@@ -13,6 +13,7 @@ char const * const TAG = "HTTP";
 //maybe use singleton instead of statics
 httpd_handle_t HttpServer::server;
 int HttpServer::fd = 0;
+
 std::function<void(uint8_t * payload, size_t len)> HttpServer::onFrame = [] (uint8_t * payload, size_t len) {};
 
 HttpServer::HttpServer() {
@@ -43,23 +44,18 @@ void HttpServer::start() {
     config.lru_purge_enable = true;
     config.uri_match_fn = httpd_uri_match_wildcard;
 
-    // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
-    if (httpd_start(&this->server, &config) == ESP_OK) {
-        // Set URI handlers
-        ESP_LOGI(TAG, "Registering URI handlers");
-        httpd_register_uri_handler(server, &websocketOptions);
-        httpd_register_uri_handler(server, &defaultOptions);
-        // httpd_register_uri_handler(server, &echo);
-        // httpd_register_uri_handler(server, &ctrl);
-        #if CONFIG_EXAMPLE_BASIC_AUTH
-        // httpd_register_basic_auth(server);
-        #endif
+    esp_err_t err;
+    err = httpd_start(&this->server, &config);
+    if (err != ESP_OK) {
+        ESP_LOGI(TAG, "Error starting server!");
         return;
     }
 
-    ESP_LOGI(TAG, "Error starting server!");
-    // return NULL;
+    ESP_LOGI(TAG, "Registering URI handlers");
+    // TODO check err
+    err = httpd_register_uri_handler(server, &websocketOptions);
+    err = httpd_register_uri_handler(server, &defaultOptions);
 }
 
 esp_err_t HttpServer::hello_get_handler(httpd_req_t *req)
