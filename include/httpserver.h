@@ -19,10 +19,10 @@ public:
     bool isWebsocketConnected();
 private:
     static httpd_handle_t server;
-    static int fd;
+    static int socketFd;
 
     static void sendFile(httpd_req_t * req);
-    static esp_err_t hello_get_handler(httpd_req_t *req);
+    static esp_err_t handleGetStatic(httpd_req_t *req);
     static esp_err_t handleWebSocket(httpd_req_t *req);
     static std::string getMimeType(std::string path);
     static void startPingTimer();
