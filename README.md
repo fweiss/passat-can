@@ -56,3 +56,7 @@ https://github.com/NewTec-GmbH/esp32-can-iot
 brief intro to j1939
 https://copperhilltech.com/a-brief-introduction-to-the-sae-j1939-protocol
 
+https://www.youtube.com/watch?v=J4XMFja1q0I
+
+Extensive desription of WS
+https://hpbn.co/websocket/

@@ -216,7 +216,15 @@ void app_main(void)
     wifi_init_sta();
 
     HttpServer::onFrame = [] (uint8_t * payload, size_t len) {
-        canbus.triggerRead();
+        // translate WS message to CAN
+        // canbus.triggerRead();
+        can_message_t msg;
+        memset(&msg, 0, sizeof(msg));
+        //littleendian
+        msg.identifier = payload[0] + (payload[1] << 8);
+        msg.data_length_code = 8;
+        memcpy(&msg.data, &payload[2], TWAI_FRAME_MAX_DLC);
+        canbus.sendFrame(msg);
     };
     httpServer.start();
 

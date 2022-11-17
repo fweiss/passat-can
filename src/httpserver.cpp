@@ -68,26 +68,25 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
         ESP_LOGI(TAG, "websocket handshake");
 
         // save socket descriptor for subsequent async sends
-
         socketFd = httpd_req_to_sockfd(req);
         ESP_LOGI(TAG, "saved socket fd %d", socketFd);
+
+        // startPingTimer();
 
         return ESP_OK;
     }
 
-    startPingTimer();
-
     uint8_t buf[120];
     httpd_ws_frame_t ws_frame;
-    ws_frame.type = HTTPD_WS_TYPE_TEXT;
+    ws_frame.type = HTTPD_WS_TYPE_BINARY;
     ws_frame.payload = buf;
     ws_frame.len = 0;
 
-    httpd_ws_recv_frame(req, &ws_frame, sizeof(buf) - 1);
+    esp_err_t err = httpd_ws_recv_frame(req, &ws_frame, sizeof(buf) - 1);
     if (ws_frame.len < sizeof(buf)) {
-        buf[ws_frame.len] = 0;
+        buf[ws_frame.len] = 0; // was for string
     }
-    ESP_LOGI(TAG, "received web socket frame: %s", ws_frame.payload);
+    ESP_LOGI(TAG, "received web socket frame: len:%d type:%d final:%d payload[0]:%x", ws_frame.len, ws_frame.type, ws_frame.final, ws_frame.payload[0]);
     onFrame(ws_frame.payload, ws_frame.len);
 
     return ESP_OK;

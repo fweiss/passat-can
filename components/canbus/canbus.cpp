@@ -72,7 +72,7 @@ void CanBus::sendFrame(can_message_t & message) {
     esp_err_t err;
     err = can_transmit(&message, pdMS_TO_TICKS(1000));
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "tramsit message failed");
+        ESP_LOGE(TAG, "tramsit message failed: %x", err);
     }
 }
 

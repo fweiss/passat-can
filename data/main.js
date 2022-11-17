@@ -21,6 +21,15 @@ $(() => {
         summary.addId(fd)
     }
 
+    // a bit tricky to get realtime changes
+    $('#rpm').mousemove(event => {
+        const rpm = document.getElementById('rpm').value
+        console.log(rpm)
+        // wes.send(rpm)
+    })
+    $('#send').click(event => {
+        wes.send(200)
+    })
     $(summary).on('update', event => {
         const list = summary.ids.join(',')
         console.log(list)
@@ -64,7 +73,14 @@ class WSConnection {
     init() {
 
     }
-    send(frame) {
+    xsend(frame) {
+        this.wes.send(frame)
+    }
+    send(rpm) {
+        const frame = new ArrayBuffer(10)
+        const view = new DataView(frame)
+        view.setUint16(0, 0x320, true)
+        view.setUint16(3, 2000 * 100)
         this.wes.send(frame)
     }
     statusString(readyState) {
@@ -85,6 +101,7 @@ class Summary {
     addId(id) {
         if ( ! this.ids.includes(id)) {
             this.ids.push(id)
+            this.ids.sort((a, b) => { return a - b })
             $(this).trigger('update')
         }
     }
