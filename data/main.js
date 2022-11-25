@@ -3,6 +3,7 @@ $(() => {
 
     let wes = new WSConnection()
     let summary = new Summary()
+    let frames = {}
 
     function array2hex(buf) {
         return [...new Uint8Array(buf)]
@@ -17,8 +18,33 @@ $(() => {
         // const x = array2hex(new ArrayBuffer(data, 2))
         // const y = data.slice(2)
         const fd = view.getUint16(0, littleEndian)
+        const payload = data.slice(2)
         $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(data.slice(2)))
         summary.addId(fd)
+
+        // model
+        let frame = frames[fd]
+        if (frame === undefined) {
+            frame = frames[fd] = new Frame(fd)
+        }
+        // view
+        $(frame).bind('update', e => {
+            const target = e.currentTarget
+            const fdClass = 'fd' + target.fd
+            const ol = $('#frames')
+            let li = $('#frames li.' + fdClass)
+            if (li.length === 0) {
+                console.log(target.fd)
+                li = $('<li>').appendTo(ol)
+                li.addClass(fdClass)
+                $('<span>').appendTo(li).text(target.fd)
+                $('<span>').appendTo(li)
+
+            }
+            $(li).children().eq(1).text(Math.round(target.period))
+        })
+        frame.event(payload)
+
     }
 
     // a bit tricky to get realtime changes
@@ -98,11 +124,27 @@ class Summary {
     constructor() {
         this.ids = []
     }
-    addId(id) {
-        if ( ! this.ids.includes(id)) {
-            this.ids.push(id)
+    addId(fd) {
+        if ( ! this.ids.includes(fd)) {
+            this.ids.push(fd)
             this.ids.sort((a, b) => { return a - b })
-            $(this).trigger('update')
+            $(this).trigger('update', fd)
         }
+    }
+}
+
+class Frame {
+    constructor(fd) {
+        this.fd = fd
+        this.sampleStartTime = Date.now()
+        this.counter = 0
+    }
+    event(payload) {
+        this.counter += 1
+        this.sampleLastTime = Date.now()
+        $(this).trigger('update')
+    }
+    get period() {
+        return (this.sampleLastTime - this.sampleStartTime) / this.counter
     }
 }
