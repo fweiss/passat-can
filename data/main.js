@@ -1,74 +1,87 @@
 $(() => {
-    let count = 0
+    const app = new App()
+})
 
-    let wes = new WSConnection()
-    let summary = new Summary()
-    let frames = {}
+function array2hex(buf) {
+    return [...new Uint8Array(buf)]
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join(' ')
+}
 
-    function array2hex(buf) {
-        return [...new Uint8Array(buf)]
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join(' ')
+class App {
+    constructor() {
+        let count = 0
+
+        let wes = new WSConnection()
+        let summary = new Summary()
+        let frames = {}
+    
+        wes.onmessage = (data) => {
+            count++;
+            const littleEndian = true
+            const view = new DataView(data)
+            const fd = view.getUint16(0, littleEndian)
+            const payload = data.slice(2)
+
+            this.trace(data)
+            summary.addId(fd)
+    
+            // model
+            let frame = frames[fd]
+            if (frame === undefined) {
+                frame = frames[fd] = new Frame(fd)
+            }
+            // view
+            $(frame).bind('update', e => {
+                const target = e.currentTarget
+                const fdClass = 'fd' + target.fd
+                const ol = $('#frames')
+                let li = $('#frames li.' + fdClass)
+                if (li.length === 0) {
+                    console.log(target.fd)
+                    li = $('<li>').appendTo(ol)
+                    li.addClass(fdClass)
+                    $('<span>').appendTo(li).text(target.fd)
+                    $('<span>').appendTo(li)
+    
+                }
+                $(li).children().eq(1).text(Math.round(target.period))
+            })
+            frame.event(payload)
+    
+        }
+    
+        // a bit tricky to get realtime changes
+        $('#rpm').mousemove(event => {
+            const rpm = document.getElementById('rpm').value
+            console.log(rpm)
+            // wes.send(rpm)
+        })
+        $('#send').click(event => {
+            wes.send(200)
+        })
+        $(summary).on('update', event => {
+            const list = summary.ids.join(',')
+            console.log(list)
+            $('#summary').val(list)
+        })
+    
+        const sample = 1000 // ms
+        setInterval(() => {
+            let rate = count / (sample / 1000)
+            count = 0
+            $('#rate').val(rate)
+        }, sample)
+    
     }
-    wes.onmessage = (data) => {
-        count++;
+    trace(data) {
         const littleEndian = true
-        // console.log("ws message " + data)
         const view = new DataView(data)
-        // const x = array2hex(new ArrayBuffer(data, 2))
-        // const y = data.slice(2)
         const fd = view.getUint16(0, littleEndian)
         const payload = data.slice(2)
         $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(data.slice(2)))
-        summary.addId(fd)
-
-        // model
-        let frame = frames[fd]
-        if (frame === undefined) {
-            frame = frames[fd] = new Frame(fd)
-        }
-        // view
-        $(frame).bind('update', e => {
-            const target = e.currentTarget
-            const fdClass = 'fd' + target.fd
-            const ol = $('#frames')
-            let li = $('#frames li.' + fdClass)
-            if (li.length === 0) {
-                console.log(target.fd)
-                li = $('<li>').appendTo(ol)
-                li.addClass(fdClass)
-                $('<span>').appendTo(li).text(target.fd)
-                $('<span>').appendTo(li)
-
-            }
-            $(li).children().eq(1).text(Math.round(target.period))
-        })
-        frame.event(payload)
-
     }
-
-    // a bit tricky to get realtime changes
-    $('#rpm').mousemove(event => {
-        const rpm = document.getElementById('rpm').value
-        console.log(rpm)
-        // wes.send(rpm)
-    })
-    $('#send').click(event => {
-        wes.send(200)
-    })
-    $(summary).on('update', event => {
-        const list = summary.ids.join(',')
-        console.log(list)
-        $('#summary').val(list)
-    })
-
-    const sample = 1000 // ms
-    setInterval(() => {
-        let rate = count / (sample / 1000)
-        count = 0
-        $('#rate').val(rate)
-    }, sample)
-})
+}
 
 class WSConnection {
     constructor() {
