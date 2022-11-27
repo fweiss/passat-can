@@ -27,30 +27,31 @@ class App {
             summary.addId(fd)
     
             // model
-            let frame = frames[fd]
+            let frame = this.frame = frames[fd]
             if (frame === undefined) {
                 frame = frames[fd] = new Frame(fd)
+                // view
+                $(frame).bind('update', e => {
+                    const target = e.currentTarget
+                    const fdClass = 'fd' + target.fd
+                    const ol = $('#frames')
+                    let li = $('#frames li.' + fdClass)
+                    if (li.length === 0) {
+                        console.log(target.fd)
+                        li = $('<li>').appendTo(ol)
+                        li.addClass(fdClass)
+                        $('<span>').appendTo(li).text(target.fd)
+                        $('<span>').appendTo(li)
+
+                    }
+                    $(li).children().eq(1).text(Math.round(target.period))
+                })
             }
-            // view
-            $(frame).bind('update', e => {
-                const target = e.currentTarget
-                const fdClass = 'fd' + target.fd
-                const ol = $('#frames')
-                let li = $('#frames li.' + fdClass)
-                if (li.length === 0) {
-                    console.log(target.fd)
-                    li = $('<li>').appendTo(ol)
-                    li.addClass(fdClass)
-                    $('<span>').appendTo(li).text(target.fd)
-                    $('<span>').appendTo(li)
-    
-                }
-                $(li).children().eq(1).text(Math.round(target.period))
-            })
             frame.event(payload)
     
         }
-    
+
+        
         // a bit tricky to get realtime changes
         $('#rpm').mousemove(event => {
             const rpm = document.getElementById('rpm').value
@@ -111,9 +112,6 @@ class WSConnection {
     }
     init() {
 
-    }
-    xsend(frame) {
-        this.wes.send(frame)
     }
     send(rpm) {
         const frame = new ArrayBuffer(10)
