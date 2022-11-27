@@ -35,13 +35,13 @@ $24
 
 | Seed v2 | DB9F | ODB-II M | CAN |
 |--- |--- |--- |--- |
-| GND, J5 | 1 | 5 | GND S16
+| GND, J5 | 1 | 5 | GND SIG
 | GND, J2 | 2 | 4 | GND CH
 | CAB H, J3 | 3 | 6 | CAN H J2234
-X | 4 | 7 | K
+X | 4 | 7 | ISO 9141-2 K
 CAN L J4 | 5 | 14 | CAN L J2234
 X | 6 | 10 | J1850 BUS
 PIN 7 | 7 | 2 | J1850 BUS +
-X | 8 | 15 | 9141-2 LOW
+X | 8 | 15 | ISO 9141-2 LOW
 V-OBD9 | 9 | 16 | BAT
 
