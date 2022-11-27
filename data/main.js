@@ -9,6 +9,11 @@ function array2hex(buf) {
 }
 
 class App {
+    dispatchFrame(fd, payload) {
+        this.trace(fd, payload)
+        // summary
+        // frameModel
+    }
     constructor() {
         let count = 0
 
@@ -18,12 +23,14 @@ class App {
     
         wes.onmessage = (data) => {
             count++;
+
             const littleEndian = true
             const view = new DataView(data)
             const fd = view.getUint16(0, littleEndian)
             const payload = data.slice(2)
 
-            this.trace(data)
+            this.dispatchFrame(fd, payload)
+
             summary.addId(fd)
     
             // model
@@ -75,12 +82,8 @@ class App {
         }, sample)
     
     }
-    trace(data) {
-        const littleEndian = true
-        const view = new DataView(data)
-        const fd = view.getUint16(0, littleEndian)
-        const payload = data.slice(2)
-        $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(data.slice(2)))
+    trace(fd, payload) {
+        $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(payload))
     }
 }
 
