@@ -31,25 +31,10 @@ class App {
 
             this.dispatchFrame(fd, payload)
     
-            // model
             let frame = this.frame = frames[fd]
             if (frame === undefined) {
                 frame = frames[fd] = new Frame(fd)
-                // view
-                $(frame).bind('update', e => {
-                    const target = e.currentTarget
-                    const fdClass = 'fd' + target.fd
-                    const ol = $('#frames')
-                    let li = $('#frames li.' + fdClass)
-                    if (li.length === 0) {
-                        li = $('<li>').appendTo(ol)
-                        li.addClass(fdClass)
-                        $('<span>').appendTo(li).text(target.fd)
-                        $('<span>').appendTo(li)
-
-                    }
-                    $(li).children().eq(1).text(Math.round(target.period))
-                })
+                this.createFrameView(frame)
             }
             frame.event(payload)
     
@@ -78,8 +63,17 @@ class App {
         }, sample)
     
     }
-    createFrameView() {
-        
+    createFrameView(frame) {
+        const fdClass = 'fd' + frame.fd
+        const ol = $('#frames')
+        const li = $('<li>').appendTo(ol)
+        li.addClass(fdClass)
+        $('<span>').appendTo(li).text(frame.fd)
+        const period = $('<span>').appendTo(li)
+        $(frame).bind('update', e => {
+            const target = e.currentTarget
+            period.text(Math.round(target.period))
+        })
     }
     trace(fd, payload) {
         $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(payload))
