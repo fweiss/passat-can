@@ -11,14 +11,14 @@ function array2hex(buf) {
 class App {
     dispatchFrame(fd, payload) {
         this.trace(fd, payload)
-        // summary
+        this.summary.addId(fd)
         // frameModel
     }
     constructor() {
         let count = 0
 
         let wes = new WSConnection()
-        let summary = new Summary()
+        this.summary = new Summary()
         let frames = {}
     
         wes.onmessage = (data) => {
@@ -30,8 +30,6 @@ class App {
             const payload = data.slice(2)
 
             this.dispatchFrame(fd, payload)
-
-            summary.addId(fd)
     
             // model
             let frame = this.frame = frames[fd]
@@ -44,7 +42,6 @@ class App {
                     const ol = $('#frames')
                     let li = $('#frames li.' + fdClass)
                     if (li.length === 0) {
-                        console.log(target.fd)
                         li = $('<li>').appendTo(ol)
                         li.addClass(fdClass)
                         $('<span>').appendTo(li).text(target.fd)
@@ -68,9 +65,8 @@ class App {
         $('#send').click(event => {
             wes.send(200)
         })
-        $(summary).on('update', event => {
-            const list = summary.ids.join(',')
-            console.log(list)
+        $(this.summary).on('update', event => {
+            const list = this.summary.ids.join(',')
             $('#summary').val(list)
         })
     
@@ -81,6 +77,9 @@ class App {
             $('#rate').val(rate)
         }, sample)
     
+    }
+    createFrameView() {
+        
     }
     trace(fd, payload) {
         $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(payload))

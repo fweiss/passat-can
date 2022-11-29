@@ -45,3 +45,27 @@ PIN 7 | 7 | 2 | J1850 BUS +
 X | 8 | 15 | ISO 9141-2 LOW
 V-OBD9 | 9 | 16 | BAT
 
+## MCP25625 Click
+db9-m, SPI, UART
+
+https://download.mikroe.com/documents/add-on-boards/click/mcp25625/mcp25625-click-schematic-v100.pdf
+
+| pin | descrioption |
+|--- |---
+| CLO | PWM | 6 CLKOUT
+| INT | INT | 25 INT
+| TX0 | TX | 7 TX0RTS
+| RX0 | RX | 24 RX0BF
+| TX1 | SCL | 8 TX1RTS
+| RX1 | SDA | 23 RX1BF
+| 5V | 5V | 19 VDDA
+| GND
+| STB | AN | 15 STBY (via switch)
+| RST | RST | 2 RST
+| CS | CS | 1 CS
+| SCK | SCK | 26 SCK
+| SDO | MISO | 28 MISO
+| SDI | MOSI | 27 MOSI
+| 3V3
+| GND
+
