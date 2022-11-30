@@ -10,15 +10,12 @@ function array2hex(buf) {
 
 class App {
     dispatchFrame(fd, payload) {
-        this.trace(fd, payload)
-        this.summary.addId(fd)
         // frameModel
     }
     constructor() {
         let count = 0
 
         let wes = new WSConnection()
-        this.summary = new Summary()
         let frames = {}
     
         wes.onmessage = (data) => {
@@ -64,19 +61,16 @@ class App {
     
     }
     createFrameView(frame) {
-        const fdClass = 'fd' + frame.fd
-        const ol = $('#frames')
-        const li = $('<li>').appendTo(ol)
-        li.addClass(fdClass)
-        $('<span>').appendTo(li).text(frame.fd)
-        const period = $('<span>').appendTo(li)
-        $(frame).bind('update', e => {
-            const target = e.currentTarget
+        const tb = $('table#frames tbody')
+        const tr = $('<tr>').appendTo(tb)
+        $('<td>').appendTo(tr).text(frame.fd).addClass('code')
+        const period = $('<td>').appendTo(tr).addClass('period')
+        const payload = $('<td>').appendTo(tr).addClass('payload')
+        $(frame).bind('update', (event, data) => {
+            const target = event.currentTarget
             period.text(Math.round(target.period))
+            payload.text(array2hex(data))
         })
-    }
-    trace(fd, payload) {
-        $('#frame').val(String(fd).padStart(4, '0') + ' ' + array2hex(payload))
     }
 }
 
@@ -126,20 +120,6 @@ class WSConnection {
         return map[readyState] || 'unknown'
     }
 }
-
-class Summary {
-    constructor() {
-        this.ids = []
-    }
-    addId(fd) {
-        if ( ! this.ids.includes(fd)) {
-            this.ids.push(fd)
-            this.ids.sort((a, b) => { return a - b })
-            $(this).trigger('update', fd)
-        }
-    }
-}
-
 class Frame {
     constructor(fd) {
         this.fd = fd
@@ -149,7 +129,7 @@ class Frame {
     event(payload) {
         this.counter += 1
         this.sampleLastTime = Date.now()
-        $(this).trigger('update')
+        $(this).trigger('update', payload)
     }
     get period() {
         return (this.sampleLastTime - this.sampleStartTime) / this.counter

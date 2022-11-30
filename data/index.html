@@ -12,13 +12,8 @@
     <body>
         <h1>Passat CAN</h1>
         <div>
-            <input id="frame" type="text" size="64">
-        </div>
-        <div>
             <input id="rate" type="text">
-        </div>
-        <div>
-            <input id="summary" type="text">
+            <span>frames per second</span>
         </div>
         <div>
             <input id="rpm" type="range" min="0" max="6000" value="0">
@@ -26,7 +21,9 @@
         <div>
             <button id="send">Send</button>
         </div>
-        <ol id="frames">
-        </ol>
+        <table id="frames">
+            <tbody>
+            </tbody>
+        </table>
     </body>
 </html>

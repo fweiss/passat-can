@@ -1,6 +1,16 @@
 input {
     font-family:'Courier New', Courier, monospace;
 }
-#frames li span {
-    margin: 0.25em;
+
+table#framet {
+    margin: 1em;
+}
+table td {
+    padding: 0.1em;
+    border: 1px solid black;
+    border-collapse: collapse;
+    font-family:'Courier New', Courier, monospace;
+}
+td.code, td.period {
+    text-align: right;
 }
