@@ -76,11 +76,13 @@ class App {
 
 class WSConnection {
     constructor() {
+        const websocketstatus = $('#websocketstatus')
         this.wes = new WebSocket('ws://' + window.location.host + '/ws')
         this.wes.binaryType = 'arraybuffer'
 
         this.wes.onopen = (event) => {
             console.log('websocket opened')
+            websocketstatus.val(this.statusString(this.wes.readyState))
         }
         this.wes.onclose = (event) => {
             console.log('websocket closed')
@@ -93,11 +95,8 @@ class WSConnection {
             this.onmessage(event.data)
         }
         setInterval(() => {
-            console.log('websocket readystate: ' + this.statusString(this.wes.readyState))
-            // FIXME let the server manage the ping
-            // if (this.wes.readyState == WebSocket.OPEN) {
-            //     this.wes.send('sync')
-            // }
+            // console.log('websocket readystate: ' + this.statusString(this.wes.readyState))
+            websocketstatus.val(this.statusString(this.wes.readyState))
         }, 1000)
     }
     init() {
