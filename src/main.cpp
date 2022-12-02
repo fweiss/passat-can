@@ -70,7 +70,7 @@ static EventGroupHandle_t s_wifi_event_group;
 extern "C" {
 	void app_main(void);
 }
-static const char *TAG = "wifi station";
+static const char *TAG = "passat-can";
 
 static int s_retry_num = 0;
 
@@ -101,7 +101,7 @@ void wifi_init_sta(void)
 {
     s_wifi_event_group = xEventGroupCreate();
 
-    ESP_ERROR_CHECK(esp_netif_init());
+    // ESP_ERROR_CHECK(esp_netif_init());
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
@@ -140,6 +140,7 @@ void wifi_init_sta(void)
     strcpy((char*)wifi_config.sta.password, EXAMPLE_ESP_WIFI_PASS);
     // wifi_config.sta.password = EXAMPLE_ESP_WIFI_PASS;
     wifi_config.sta.threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
@@ -203,17 +204,12 @@ void app_main(void)
         return;
     }
 
-    // wifi_config_t wifi_config = {
-    //     .sta = {
-    //         .ssid = EXAMPLE_ESP_WIFI_SSID,
-    //         .password = EXAMPLE_ESP_WIFI_PASS,
-    //         .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
-    //         // .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-    //     },
-    // };
-
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
+    ESP_ERROR_CHECK(esp_netif_init());
     wifi_init_sta();
+
+    // size_t esp_netif_get_nr_of_ifs(void)
+    ESP_LOGI(TAG, "number of interfaces %d", esp_netif_get_nr_of_ifs());
 
     HttpServer::onFrame = [] (uint8_t * payload, size_t len) {
         // translate WS message to CAN
@@ -254,6 +250,9 @@ void app_main(void)
         canbus.triggerRead();
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
+
+    // not yet implemented, placeholder
+    // esp_netif_deinit();
 
     ESP_LOGI(TAG, "exit");
 }
