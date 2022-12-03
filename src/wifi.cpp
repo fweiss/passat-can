@@ -27,9 +27,8 @@ void WiFi::startStation() {
     registerGotIp();
 
     wifi_config_t wifi_config{}; // important init to zero
-    strcpy((char*)wifi_config.sta.ssid, "RANCH");
-    strcpy((char*)wifi_config.sta.password, "AAAAA12345");
-    // wifi_config.sta.password = EXAMPLE_ESP_WIFI_PASS;
+    strcpy((char*)wifi_config.sta.ssid, CONFIG_ESP_WIFI_SSID);
+    strcpy((char*)wifi_config.sta.password, CONFIG_ESP_WIFI_PASSWORD);
     wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );

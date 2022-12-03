@@ -33,7 +33,7 @@ $24
 
 ## Cable OBD-II to DB9
 
-| Seed v2 | DB9F | ODB-II M | CAN |
+| Seed v2 | DB9F | OBD-II M | CAN |
 |--- |--- |--- |--- |
 | GND, J5 | 1 | 5 | GND SIG
 | GND, J2 | 2 | 4 | GND CH
