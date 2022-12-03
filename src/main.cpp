@@ -208,7 +208,7 @@ void app_main(void)
 
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     ESP_ERROR_CHECK(esp_netif_init());
-    wifi_init_sta();
+    // wifi_init_sta();
     wifi.startStation();
 
     // size_t esp_netif_get_nr_of_ifs(void)
