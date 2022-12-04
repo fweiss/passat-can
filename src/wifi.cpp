@@ -15,6 +15,8 @@ WiFi::~WiFi() {
 }
 
 void WiFi::startStation() {
+    ESP_LOGI(TAG, "starting wifi station mode");
+
     s_wifi_event_group = xEventGroupCreate();
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -37,6 +39,60 @@ void WiFi::startStation() {
     ESP_LOGI(TAG, "wifi_init_sta finished.");
 
     waitForConnection();
+}
+
+void WiFi::startAccessPoint() {
+    ESP_LOGI(TAG, "starting wifi access point mode");
+
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    esp_netif_create_default_wifi_ap(); // ap instead of sta
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                        ESP_EVENT_ANY_ID,
+                                                        &event_handler,
+                                                        NULL,
+                                                        NULL));
+
+    const char staSSID[] = "wallop";
+    const char staPASS[] = "";
+    uint8_t staChannel = 5;
+    uint8_t staMaxConnections = 5;
+    // wifi_config_t wifi_configx = {
+    //     .ap = {
+    //         .ssid = staSSID,
+    //         .ssid_len = strlen(staSSID),
+    //         .channel = staChannel,
+    //         .password = staPASS,
+    //         .max_connection = staMaxConnections,
+    //         .authmode = WIFI_AUTH_WPA_WPA2_PSK,
+    //         .pmf_cfg = {
+    //                 .required = false,
+    //         },
+    //     },
+    // };
+    wifi_config_t wifi_config{};
+    wifi_ap_config_t & ap = wifi_config.ap;
+    memcpy(&ap.ssid, &staSSID, sizeof(staSSID));
+    ap.ssid_len = strlen(staSSID);
+    ap.channel = staChannel;
+    memcpy(&ap.password, &staPASS, sizeof(staPASS));
+    ap.max_connection = staMaxConnections;
+    ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+    // ap.pmf_cfg.required = fales;
+    
+    if (strlen(staPASS) == 0) {
+        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    }
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
+             "FIXME", "FIXME", 5);
 }
 
 void WiFi::registerAnyId() {
@@ -76,6 +132,18 @@ void WiFi::event_handler(void* arg, esp_event_base_t event_base, int32_t event_i
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
         self->s_retry_num = 0;
         xEventGroupSetBits(self->s_wifi_event_group, self->WIFI_CONNECTED_BIT);
+    }
+    // maybe should be separate handler?
+    if (event_id == WIFI_EVENT_AP_STACONNECTED) {
+        wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
+        ESP_LOGI(TAG, "station connected");
+        // ESP_LOGI(TAG, "station %02x:%02x:%02x:%02x:%02x:%02x %s join, AID=%d",
+        //          MAC2STR(event->mac), event->aid);
+    } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
+        ESP_LOGI(TAG, "station disconnected");
+        // ESP_LOGI(TAG, "station %02x:%02x:%02x:%02x:%02x:%02x %s leave, AID=%d",
+        //          MAC2STR(event->mac), event->aid);
     }
 }
 

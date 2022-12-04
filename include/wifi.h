@@ -25,6 +25,7 @@ public:
     virtual ~WiFi();
 
     void startStation();
+    void startAccessPoint();
 private:
     EventGroupHandle_t s_wifi_event_group;
     int s_retry_num;
