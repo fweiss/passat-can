@@ -50,8 +50,8 @@ void app_main(void)
     }
 
     ESP_ERROR_CHECK(esp_netif_init());
-    // wifi.startStation();
-    wifi.startAccessPoint();
+    wifi.startStation();
+    // wifi.startAccessPoint();
 
     // size_t esp_netif_get_nr_of_ifs(void)
     ESP_LOGI(TAG, "number of interfaces %d", esp_netif_get_nr_of_ifs());

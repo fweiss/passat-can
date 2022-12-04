@@ -58,8 +58,39 @@ void HttpServer::start() {
     err = httpd_register_uri_handler(server, &defaultOptions);
 }
 
+// messy litle helper to get arround the const char uri[]
+// in httpd_req_t
+// wrapping with extern "C" so that uri can be initialized with a string
+// note that the return is copy-by-value, so no pointer issues
+#ifdef __cplusplus
+    extern "C"
+    {
+#endif
+static httpd_req_t indexRequest(httpd_req_t * req) {
+    httpd_req_t index {
+        .handle = req->handle,
+        .method = req->method,
+        .uri = {'/', 'i', 'n', 'd', 'e', 'x', '.', 'h', 't', 'm', 'l'}, // "/index.html",
+        .content_len = req->content_len,
+        .aux = req->aux,
+        .user_ctx = req->user_ctx,
+        .sess_ctx = req->sess_ctx,
+        .free_ctx = req->free_ctx,
+        .ignore_sess_ctx_changes = req->ignore_sess_ctx_changes,
+    };
+    return index;
+}
+#ifdef __cplusplus
+    }
+#endif
+
 esp_err_t HttpServer::handleGetStatic(httpd_req_t *req) {
-    sendFile(req);
+    if (strcmp(req->uri, "/") == 0) {
+       httpd_req_t x = indexRequest(req);
+       sendFile(&x);
+    } else {
+        sendFile(req);
+    }
     return ESP_OK;
 }
 
