@@ -69,3 +69,7 @@ https://download.mikroe.com/documents/add-on-boards/click/mcp25625/mcp25625-clic
 | 3V3
 | GND
 
+## Links and references
+Great selection of breadboard breakout boards.
+https://www.elabbay.com
+
