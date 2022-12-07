@@ -2,22 +2,14 @@
 
 #include "esp_log.h"
 
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <inttypes.h>
-// #include "freertos/FreeRTOS.h"
-// #include "freertos/task.h"
-// #include "esp_system.h"
-
 #define PIN_NUM_MISO 12
 #define PIN_NUM_MOSI 13
 #define PIN_NUM_CLK  14
 #define PIN_NUM_CS  15
 
-#define PARALLEL_LINES 10
-
 static char const * const TAG = "mcp25625";
+
+const int spi_clock_speed = 10*1000*1000;
 
 MCP25625::MCP25625() {
 
@@ -25,20 +17,19 @@ MCP25625::MCP25625() {
 MCP25625::~MCP25625() {
 }
 void MCP25625::init() {
+    // default for .max_transfer_sz and .flags
     spi_bus_config_t buscfg {
         .mosi_io_num = PIN_NUM_MOSI,
         .miso_io_num = PIN_NUM_MISO,
         .sclk_io_num = PIN_NUM_CLK,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        .max_transfer_sz = PARALLEL_LINES*320*2+8,
-        .flags = SPICOMMON_BUSFLAG_MASTER,
     };
     spi_device_interface_config_t devcfg {
         .command_bits = 8,
         .address_bits = 8,
         .mode = 0,                                // either 0,0 or 1,1 for mcp25625
-        .clock_speed_hz = 10*1000*1000,           // Clock out at 26 MHz
+        .clock_speed_hz = spi_clock_speed,           // Clock out at 26 MHz
         .spics_io_num = PIN_NUM_CS,
         .queue_size = 7,                          // We want to be able to queue 7 transactions at a time
     };
