@@ -7,6 +7,7 @@
 #include "wifi.h"
 #include "canbus.h"
 #include "httpserver.h"
+#include "mcp25625.h"
 
 extern "C" {
 	void app_main(void);
@@ -16,10 +17,24 @@ static const char *TAG = "passat-can";
 WiFi wifi;
 CanBus canbus;
 HttpServer httpServer;
+MCP25625 mcp25625;
 
-void app_main(void)
+void app_main() {
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    mcp25625.init();
+  
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+}
+
+void app_mainx(void)
 {
-    //Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -89,6 +104,8 @@ void app_main(void)
         }
     });
     canbus.init();
+
+    mcp25625.init();
 
     // vTaskDelay(10000 / portTICK_PERIOD_MS);
     while (true) {
