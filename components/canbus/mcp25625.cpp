@@ -1,6 +1,7 @@
 #include "mcp25625.h"
 
 #include "esp_log.h"
+#include "freertos/task.h"
 
 #define PIN_NUM_MISO 12
 #define PIN_NUM_MOSI 13
@@ -44,7 +45,8 @@ void MCP25625::init() {
 
     ESP_LOGI(TAG, "spi device configured");
 
-    registerTest();
+    // registerTest();
+    receiveTest();
 
     err = spi_bus_remove_device(spi);
     ESP_ERROR_CHECK(err);
@@ -112,6 +114,60 @@ void MCP25625::registerTest() {
 }
 
 void MCP25625::receiveTest() {
-    
+    ESP_LOGI(TAG, "starting receive test");
+    reset();
+    bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
+    while (true) {
+        //check rb0 interrupt
+        uint8_t canintf;
+        readRegister(reg::CANINTF, canintf);
+        bool rxb0 = (canintf & 0x01);
+        if (rxb0) {
+            uint8_t value;
+            bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
+            readRegister(reg::RXB0DLC, value);
+            ESP_LOGI(TAG, "dlc %x", value);
+        }
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
 }
 
+void MCP25625::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value) {
+    esp_err_t err;
+
+    spi_transaction_t transaction {};
+    transaction.cmd = cmd::BIT_MODIFY;
+    transaction.addr = address;
+    transaction.flags = SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA; // | SPI_TRANS_MODE_OCT;
+    transaction.length = 16;
+    transaction.rxlength = 0;
+    transaction.tx_data[0] = mask;
+    transaction.tx_data[1] = value;
+    err = spi_device_transmit(spi, &transaction);
+    ESP_ERROR_CHECK(err);
+}
+
+void MCP25625::reset() {
+    esp_err_t err;
+
+    // using transaction_ext to set address length zero
+    spi_transaction_ext_t transaction_ext {};
+    spi_transaction_t & transaction = transaction_ext.base;
+    transaction.cmd = cmd::RESET;
+    transaction.flags = SPI_TRANS_VARIABLE_ADDR;
+    transaction.length = 0;
+    transaction.rxlength = 0;
+    transaction_ext.address_bits = 0;
+    err = spi_device_transmit(spi, &transaction);
+    ESP_ERROR_CHECK(err); 
+}
+
+void MCP25625::timing() {
+    // CNF1 SJW, BRP
+    // SJW sjw {0};
+    // bitModifyRegister(reg::CNF1, 0x);
+    // CNF2 SAM, PHSEG1, PHSEG
+    // bitModifyRegister(reg::CNF2, 0x40 | 0x38 | 0x07, sam | phseg1 | phseg)
+    // CNF3 PHSEG2[2:0]
+    // bitModifyRegestor(reg::CNF3, 0x07, phseg2);
+}
