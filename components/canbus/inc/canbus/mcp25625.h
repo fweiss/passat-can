@@ -16,8 +16,14 @@ private:
     spi_device_handle_t spi;
 
     // the spi interface requires int16_t, but mcp uses only uint8_t
+    // mc25625 SPI command enumeration
     enum cmd {
         READ = 0x03,
         WRITE = 0x02,
+    };
+    // mcp25625 register address enumeration
+    enum reg {
+        CANCTRL = 0x0e,
+        CNF1 = 0x2a,
     };
 };
