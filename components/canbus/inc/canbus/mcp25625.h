@@ -8,9 +8,11 @@ public:
     virtual ~MCP25625();
 
     void init();
-    void registerTest(spi_device_handle_t spi);
     void readRegister(uint8_t const address, uint8_t & value);
     void writeRegister(uint8_t const address, uint8_t const value);
+
+    void registerTest();
+    void receiveTest();
 private:
     // this is the device object
     spi_device_handle_t spi;

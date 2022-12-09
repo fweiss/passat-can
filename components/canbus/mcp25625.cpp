@@ -44,14 +44,7 @@ void MCP25625::init() {
 
     ESP_LOGI(TAG, "spi device configured");
 
-    uint8_t value;
-    readRegister(reg::CANCTRL, value);
-    // ESP_LOGI(TAG, "register %x is %x", CANCTRL, value);
-
-    uint8_t v2;
-    writeRegister(reg::CNF1, 0x11);
-    readRegister(reg::CNF1, v2);
-    // ESP_LOGI(TAG, "read back %x", v2);
+    registerTest();
 
     err = spi_bus_remove_device(spi);
     ESP_ERROR_CHECK(err);
@@ -105,5 +98,20 @@ void MCP25625::writeRegister(uint8_t const address, uint8_t const value) {
     err = spi_device_get_trans_result(spi, &readmcpresult, portMAX_DELAY);
     ESP_ERROR_CHECK(err);
     // ESP_LOGI(TAG, "read: %d %x %x %x %x", readmcpresult->rxlength, readmcpresult->rx_data[0],  readmcpresult->rx_data[1],  readmcpresult->rx_data[2],  readmcpresult->rx_data[3]);
+}
+
+void MCP25625::registerTest() {
+    uint8_t value;
+    readRegister(reg::CANCTRL, value);
+    // ESP_LOGI(TAG, "register %x is %x", CANCTRL, value);
+
+    uint8_t v2;
+    writeRegister(reg::CNF1, 0x11);
+    readRegister(reg::CNF1, v2);
+    // ESP_LOGI(TAG, "read back %x", v2);
+}
+
+void MCP25625::receiveTest() {
+    
 }
 
