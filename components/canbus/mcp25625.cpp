@@ -108,20 +108,30 @@ void MCP25625::registerTest() {
     // ESP_LOGI(TAG, "register %x is %x", CANCTRL, value);
 
     uint8_t v2;
-    writeRegister(reg::CNF1, 0x11);
-    readRegister(reg::CNF1, v2);
+    writeRegister(reg::CANINTF, 0x11);
+    readRegister(reg::CANINTF, v2);
     // ESP_LOGI(TAG, "read back %x", v2);
+
+    SJW sjw(7);
+    // bitModifyRegister(CNF1, 0x01, 0x00);
+    bitModifyRegister(reg::CNF1, sjw);
 }
 
 void MCP25625::receiveTest() {
     ESP_LOGI(TAG, "starting receive test");
     reset();
+    timing();
     bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
     while (true) {
-        //check rb0 interrupt
+        // uint8_t rec;
+        // uint8_t eflg;
+        // readRegister(reg::REC, rec);
+        // readRegister(reg::EFLG, eflg);
+        // ESP_LOGI(TAG, "rx error counter: %x %x", rec, eflg);
+
         uint8_t canintf;
         readRegister(reg::CANINTF, canintf);
-        bool rxb0 = (canintf & 0x01);
+        bool rxb0 = (canintf & 0x01); // check rb0 interrupt
         if (rxb0) {
             uint8_t value;
             bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
@@ -132,19 +142,49 @@ void MCP25625::receiveTest() {
     }
 }
 
+// void MCP25625::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value) {
+//     esp_err_t err;
+
+//     spi_transaction_t transaction {};
+//     transaction.cmd = cmd::BIT_MODIFY;
+//     transaction.addr = address;
+//     transaction.flags = SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA; // | SPI_TRANS_MODE_OCT;
+//     transaction.length = 32;
+//     transaction.rxlength = 0;
+//     transaction.tx_data[0] = mask;
+//     transaction.tx_data[1] = value;
+//     transaction.tx_data[2] = 0x22;
+//     transaction.tx_data[3] = 0x33;
+//     err = spi_device_transmit(spi, &transaction);
+//     ESP_ERROR_CHECK(err);
+// }
 void MCP25625::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value) {
     esp_err_t err;
 
-    spi_transaction_t transaction {};
-    transaction.cmd = cmd::BIT_MODIFY;
-    transaction.addr = address;
-    transaction.flags = SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA; // | SPI_TRANS_MODE_OCT;
-    transaction.length = 16;
-    transaction.rxlength = 0;
-    transaction.tx_data[0] = mask;
-    transaction.tx_data[1] = value;
-    err = spi_device_transmit(spi, &transaction);
+    uint8_t data[2] = { mask, value };
+
+    spi_transaction_t readmcp {};
+    readmcp.cmd = cmd::BIT_MODIFY;
+    readmcp.addr = address;
+    readmcp.length = 16;
+    readmcp.rxlength = 0;
+    readmcp.tx_buffer = &data;
+
+    // // spi_device_transmit is only about 10% faster
+    // err = spi_device_transmit(spi, &readmcp);
+    // ESP_ERROR_CHECK(err);
+
+    err = spi_device_queue_trans(spi, &readmcp, portMAX_DELAY);
     ESP_ERROR_CHECK(err);
+
+    spi_transaction_t  * readmcpresult {};
+    err = spi_device_get_trans_result(spi, &readmcpresult, portMAX_DELAY);
+    ESP_ERROR_CHECK(err);
+}
+
+
+void MCP25625::bitModifyRegister(uint8_t address, FieldValue f) {
+    bitModifyRegister(address, f.mask, f.bits);
 }
 
 void MCP25625::reset() {
@@ -163,11 +203,21 @@ void MCP25625::reset() {
 }
 
 void MCP25625::timing() {
-    // CNF1 SJW, BRP
-    // SJW sjw {0};
-    // bitModifyRegister(reg::CNF1, 0x);
-    // CNF2 SAM, PHSEG1, PHSEG
-    // bitModifyRegister(reg::CNF2, 0x40 | 0x38 | 0x07, sam | phseg1 | phseg)
-    // CNF3 PHSEG2[2:0]
-    // bitModifyRegestor(reg::CNF3, 0x07, phseg2);
+    SJW sjw(3); // code 3 = 4
+    BRP brp(0);
+    SAM sam(0);
+    PHSEG1 phseg1(5);
+    PRSEG prseg(6);
+    PHSEG2 phseg2(5);
+
+    bitModifyRegister(reg::CNF1, sjw);
+    bitModifyRegister(reg::CNF1, brp);
+    bitModifyRegister(reg::CNF2, sam);
+    bitModifyRegister(reg::CNF2, phseg1);
+    bitModifyRegister(reg::CNF2, prseg);
+    bitModifyRegister(reg::CNF3, phseg2);
+
+    // writeRegister(reg::CNF1, 0x40);
+    // writeRegister(reg::CNF2, 0xf6);
+    // writeRegister(reg::CNF3, 0x84);
 }
