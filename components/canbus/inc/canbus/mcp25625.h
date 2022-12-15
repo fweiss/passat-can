@@ -28,6 +28,7 @@ public:
 
     void registerTest();
     void receiveTest();
+    void loopbackTest();
 private:
     // this is the device object
     spi_device_handle_t spi;
@@ -42,8 +43,8 @@ private:
     };
     // mcp25625 register address enumeration
     enum reg {
-        CANCTRL = 0x0e,
-        CANSTAT = 0x0f,
+        CANCTRL = 0x0f,
+        CANSTAT = 0x0e,
         CANINTF = 0x2c,
         CNF1 = 0x2a,
         CNF2 = 0x29,
@@ -52,6 +53,10 @@ private:
         RXB0CTRL = 0x60,
         REC = 0x1d,
         EFLG = 0x2d,
+        TXB0SIDH = 0x31,
+        TXB0SIDL = 0x32,
+        TXB0DLC = 0x35,
+        TXB0CTRL = 0x30,
     };
     void timing();
 };
@@ -78,4 +83,7 @@ struct PRSEG : Field<3, 0> {
 struct PHSEG2 : Field<3, 0> {
     // CNF3
     PHSEG2(uint8_t value) : Field(value) {};
+};
+struct REQOP : Field<3, 5> {
+    REQOP(uint8_t value) : Field(value) {}
 };

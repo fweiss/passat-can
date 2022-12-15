@@ -45,8 +45,9 @@ void MCP25625::init() {
 
     ESP_LOGI(TAG, "spi device configured");
 
-    // registerTest();
-    receiveTest();
+    registerTest();
+    // receiveTest();
+    // loopbackTest();
 
     err = spi_bus_remove_device(spi);
     ESP_ERROR_CHECK(err);
@@ -103,14 +104,16 @@ void MCP25625::writeRegister(uint8_t const address, uint8_t const value) {
 }
 
 void MCP25625::registerTest() {
+    ESP_LOGI(TAG, "starting register test");
+
     uint8_t value;
     readRegister(reg::CANCTRL, value);
-    // ESP_LOGI(TAG, "register %x is %x", CANCTRL, value);
+    ESP_LOGI(TAG, "register %x is %x", CANCTRL, value);
 
     uint8_t v2;
     writeRegister(reg::CANINTF, 0x11);
     readRegister(reg::CANINTF, v2);
-    // ESP_LOGI(TAG, "read back %x", v2);
+    ESP_LOGI(TAG, "read back %x", v2);
 
     SJW sjw(7);
     // bitModifyRegister(CNF1, 0x01, 0x00);
@@ -220,4 +223,32 @@ void MCP25625::timing() {
     // writeRegister(reg::CNF1, 0x40);
     // writeRegister(reg::CNF2, 0xf6);
     // writeRegister(reg::CNF3, 0x84);
+}
+
+void MCP25625::loopbackTest() {
+    ESP_LOGI(TAG, "starting loopback test");
+
+    reset();
+    timing();
+
+    // setup
+    // clear TXREQ?
+    // transmit priority>?
+    REQOP reqop(2); // loopback
+    uint8_t canctrl;
+    bitModifyRegister(reg::CANCTRL, reqop);
+
+    // transmit
+    writeRegister(reg::TXB0SIDH, 0x01);
+    writeRegister(reg::TXB0SIDL, 0x02);
+    writeRegister(reg::TXB0DLC, 0x00);
+    writeRegister(reg::TXB0CTRL, 0x04); //0x04 = TXREQ
+
+    // check receive
+    uint8_t canintf;
+    for (int i=1; i<10; i++) {
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+        readRegister(reg::CANINTF, canintf);
+        ESP_LOGI(TAG, "loopback canintf %x", canintf);
+    }
 }
