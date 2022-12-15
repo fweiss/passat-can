@@ -19,7 +19,7 @@ CanBus canbus;
 HttpServer httpServer;
 MCP25625 mcp25625;
 
-void app_main() {
+void app_mainy() {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -33,7 +33,7 @@ void app_main() {
 
 }
 
-void app_mainx(void)
+void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -74,7 +74,7 @@ void app_mainx(void)
     HttpServer::onFrame = [] (uint8_t * payload, size_t len) {
         // translate WS message to CAN
         // canbus.triggerRead();
-        can_message_t msg;
+        twai_message_t msg;
         memset(&msg, 0, sizeof(msg));
         //littleendian
         msg.identifier = payload[0] + (payload[1] << 8);
@@ -84,7 +84,7 @@ void app_mainx(void)
     };
     httpServer.start();
 
-    canbus.onRecvFrame([] (can_message_t & message) {
+    canbus.onRecvFrame([] (twai_message_t & message) {
         //Process received message
         // if (message.flags & CAN_MSG_FLAG_EXTD) {
         //     ESP_LOGI(TAG, "Message is in Extended Format");

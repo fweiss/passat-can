@@ -36,7 +36,7 @@ void MCP25625::init() {
     };
 
     esp_err_t err;
-    const spi_host_device_t canHost = HSPI_HOST;
+    const spi_host_device_t canHost = SPI3_HOST;
     err = spi_bus_initialize(canHost, &buscfg, SPI_DMA_CH_AUTO);
     ESP_ERROR_CHECK(err);
 
