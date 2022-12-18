@@ -158,22 +158,6 @@ void MCP25625::receiveTest() {
     }
 }
 
-// void MCP25625::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value) {
-//     esp_err_t err;
-
-//     spi_transaction_t transaction {};
-//     transaction.cmd = cmd::BIT_MODIFY;
-//     transaction.addr = address;
-//     transaction.flags = SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA; // | SPI_TRANS_MODE_OCT;
-//     transaction.length = 32;
-//     transaction.rxlength = 0;
-//     transaction.tx_data[0] = mask;
-//     transaction.tx_data[1] = value;
-//     transaction.tx_data[2] = 0x22;
-//     transaction.tx_data[3] = 0x33;
-//     err = spi_device_transmit(spi, &transaction);
-//     ESP_ERROR_CHECK(err);
-// }
 void MCP25625::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value) {
     esp_err_t err;
 
@@ -248,7 +232,6 @@ void MCP25625::loopbackTest() {
     // clear TXREQ?
     // transmit priority>?
     REQOP reqop(2); // loopback
-    uint8_t canctrl;
     bitModifyRegister(reg::CANCTRL, reqop);
 
     // transmit

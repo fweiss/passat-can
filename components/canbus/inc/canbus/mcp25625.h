@@ -2,17 +2,7 @@
 
 #include "driver/spi_master.h"
 
-// some template magic to simplify writing bit fields
-// for use with bitModifyRegister
-struct FieldValue {
-    const uint8_t mask;
-    const uint8_t bits;
-    FieldValue(uint8_t mask, uint8_t bits) : mask(mask), bits(bits) {}
-};
-template<uint8_t WID, uint8_t LSB>
-struct Field : public FieldValue {
-    Field(uint8_t value) : FieldValue((((1 << WID) - 1) << LSB), value << LSB) { }
-};
+struct FieldValue;
 
 class MCP25625 { // : public canbus
 public:
@@ -61,27 +51,36 @@ private:
     void timing();
 };
 
-struct SJW : Field<2,6> {
-    // CNF1
+// some template magic to simplify writing bit fields
+// for use with bitModifyRegister
+struct FieldValue {
+    const uint8_t mask;
+    const uint8_t bits;
+    FieldValue(uint8_t mask, uint8_t bits) : mask(mask), bits(bits) {}
+};
+// WID is the number of bits in the field
+// LSB is the least significant bit offset from the right
+template<uint8_t WID, uint8_t LSB>
+struct Field : public FieldValue {
+    Field(uint8_t value) : FieldValue((((1 << WID) - 1) << LSB), value << LSB) { }
+};
+
+struct SJW : Field<2,6> { // CNF1
     SJW(uint8_t value) : Field(value) {};
 };
-struct BRP : Field<6, 0> {
-    // CNF1
+struct BRP : Field<6, 0> { // CNF1
     BRP(uint8_t value) : Field(value) {};
 };
 struct SAM : Field<1, 6> {
     SAM(uint8_t value) : Field(value) {};
 };
-struct PHSEG1 : Field<3, 3> {
-    // CNF2
+struct PHSEG1 : Field<3, 3> { // CNF2
     PHSEG1(uint8_t value) : Field(value) {};
 };
-struct PRSEG : Field<3, 0> {
-    // CNF2
+struct PRSEG : Field<3, 0> { // CNF2
     PRSEG(uint8_t value) : Field(value) {};
 };
-struct PHSEG2 : Field<3, 0> {
-    // CNF3
+struct PHSEG2 : Field<3, 0> { // CNF3
     PHSEG2(uint8_t value) : Field(value) {};
 };
 struct REQOP : Field<3, 5> { // CANCTRL
