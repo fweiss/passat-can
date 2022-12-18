@@ -1,26 +1,37 @@
-Olimex ESP32 DevKit Lipo
++# Hardware
+Information about the hardware components
+
+## Overview
+The prototype consists of the following components:
+- MCP25625 Click from MikroElektronika
+- ESP32-S3-DevkitC-1 v1.0 from Esspressif
+- buck convertor from Pololu
+- OBDII-DB9 cable
+- solderless prototyping board
+
+## Olimex ESP32 DevKit Lipo
 
 GPIO-21 = TX
 GPIO-22 = RX
 
 [pinout](https://www.olimex.com/Products/IoT/ESP32/ESP32-DevKit-LiPo/resources/ESP32-DevKit-Lipo-GPIOs.png)
 
-## Power
+## Power profile
 ESP32 WROOM 32D module
 3.3 V 500 mA
 
-## Olimex ESP32 DevKit Lipo
+### Olimex ESP32 DevKit Lipo
 USB
 UNK
 5 V? 500 mA?
 
 Direct
 
-## MCP 2551
+### MCP 2551
 VDD 7 V max
 IDD 75 mA max
 
-## MCP 25625
+### MCP 25625
 5V + 3.3V
 XTAL + caps
 filter caps
@@ -32,7 +43,25 @@ See digikey list
 $24
 
 ## Cable OBD-II to DB9
+> The cable from Sparkfun was not wired correctly for the MCP-25625 Click.
 
+### From ITCARDIAG store on Aliexpress
+This has the correct wiring for the CANH and CANL signals compatible with the MCP25625 Click breakout board.
+| MCP25625 Click | DB9F | OBD-II M | CAN |
+|--- |--- |--- |--- |
+| NC | 1 | 11 | 
+| CANL | 2 | 14 | CAN L J2234
+| GND | 3 | 5 | GND SIG
+| NC | 4 | 8 | 
+nc | 5 | 1 | 
+GND | 6 | NC | J1850 BUS
+CANH | 7 | 6 | CAN H J2234
+NC | 8 | 3 | 
+see note | 9 | 16 | BAT
+
+Note: Modified Click board to bring this out to the pins.
+
+### Sparkfun cable **DOES NOT WORK WITH MCP25625 Click**
 | Seed v2 | DB9F | OBD-II M | CAN |
 |--- |--- |--- |--- |
 | GND, J5 | 1 | 5 | GND SIG
@@ -76,5 +105,11 @@ https://www.elabbay.com
 ## ESP-S3 links
 https://www.espressif.com/sites/default/files/documentation/esp32-s3_technical_reference_manual_en.pdf
 https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html
+
+[ESP32-S3-DEVKITC1 v1.0](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1-v1.0.html)
+
+### ESP32-S3-DEVKITC1 v1.0
+WROOM N8R2
+
 
 
