@@ -84,6 +84,6 @@ struct PHSEG2 : Field<3, 0> {
     // CNF3
     PHSEG2(uint8_t value) : Field(value) {};
 };
-struct REQOP : Field<3, 5> {
+struct REQOP : Field<3, 5> { // CANCTRL
     REQOP(uint8_t value) : Field(value) {}
 };

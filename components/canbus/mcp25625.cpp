@@ -3,10 +3,19 @@
 #include "esp_log.h"
 #include "freertos/task.h"
 
+// todo convert these to cont int
+#define ESP32_S3_DEVKIT
+#define PIN_NUM_MISO 13
+#define PIN_NUM_MOSI 11
+#define PIN_NUM_CLK  12
+#define PIN_NUM_CS  10
+#ifdef ESP32_S3_DEVKIT
+#elif
 #define PIN_NUM_MISO 12
 #define PIN_NUM_MOSI 13
 #define PIN_NUM_CLK  14
 #define PIN_NUM_CS  15
+#endif
 
 static char const * const TAG = "mcp25625";
 
@@ -45,8 +54,8 @@ void MCP25625::init() {
 
     ESP_LOGI(TAG, "spi device configured");
 
-    registerTest();
-    // receiveTest();
+    // registerTest();
+    receiveTest();
     // loopbackTest();
 
     err = spi_bus_remove_device(spi);
@@ -106,6 +115,8 @@ void MCP25625::writeRegister(uint8_t const address, uint8_t const value) {
 void MCP25625::registerTest() {
     ESP_LOGI(TAG, "starting register test");
 
+    reset();
+
     uint8_t value;
     readRegister(reg::CANCTRL, value);
     ESP_LOGI(TAG, "register %x is %x", CANCTRL, value);
@@ -125,6 +136,8 @@ void MCP25625::receiveTest() {
     reset();
     timing();
     bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
+    REQOP normalMode(0); // get out of configuration mode
+    bitModifyRegister(reg::CANCTRL, normalMode);
     while (true) {
         // uint8_t rec;
         // uint8_t eflg;

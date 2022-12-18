@@ -19,7 +19,7 @@ CanBus canbus;
 HttpServer httpServer;
 MCP25625 mcp25625;
 
-void app_mainy() {
+void app_main() {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -33,7 +33,7 @@ void app_mainy() {
 
 }
 
-void app_main(void)
+void app_mainx(void)
 {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {

@@ -73,3 +73,8 @@ https://download.mikroe.com/documents/add-on-boards/click/mcp25625/mcp25625-clic
 Great selection of breadboard breakout boards.
 https://www.elabbay.com
 
+## ESP-S3 links
+https://www.espressif.com/sites/default/files/documentation/esp32-s3_technical_reference_manual_en.pdf
+https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html
+
+
