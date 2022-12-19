@@ -74,7 +74,7 @@ void app_mainx(void)
     HttpServer::onFrame = [] (uint8_t * payload, size_t len) {
         // translate WS message to CAN
         // canbus.triggerRead();
-        can_message_t msg;
+        twai_message_t msg;
         memset(&msg, 0, sizeof(msg));
         //littleendian
         msg.identifier = payload[0] + (payload[1] << 8);
@@ -84,7 +84,7 @@ void app_mainx(void)
     };
     httpServer.start();
 
-    canbus.onRecvFrame([] (can_message_t & message) {
+    canbus.onRecvFrame([] (twai_message_t & message) {
         //Process received message
         // if (message.flags & CAN_MSG_FLAG_EXTD) {
         //     ESP_LOGI(TAG, "Message is in Extended Format");

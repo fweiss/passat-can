@@ -1,18 +1,13 @@
 #pragma once
 
 #include "driver/spi_master.h"
+#include "esp_intr_alloc.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
 
-// some template magic to simplify writing bit fields
-// for use with bitModifyRegister
-struct FieldValue {
-    const uint8_t mask;
-    const uint8_t bits;
-    FieldValue(uint8_t mask, uint8_t bits) : mask(mask), bits(bits) {}
-};
-template<uint8_t WID, uint8_t LSB>
-struct Field : public FieldValue {
-    Field(uint8_t value) : FieldValue((((1 << WID) - 1) << LSB), value << LSB) { }
-};
+struct FieldValue;
+struct receive_msg_t;
 
 class MCP25625 { // : public canbus
 public:
@@ -26,12 +21,14 @@ public:
     void bitModifyRegister(uint8_t const address, FieldValue f);
     void reset();
 
-    void registerTest();
-    void receiveTest();
-    void loopbackTest();
+    void testRegisters();
+    void testReceive();
+    void testLoopBack();
 private:
     // this is the device object
     spi_device_handle_t spi;
+    intr_handle_t receiveInterruptHandle;
+    QueueHandle_t receiveQueue;
 
     // the spi interface requires int16_t, but mcp uses only uint8_t
     // mc25625 SPI command enumeration
@@ -45,6 +42,7 @@ private:
     enum reg {
         CANCTRL = 0x0f,
         CANSTAT = 0x0e,
+        CANINTE = 0x2b,
         CANINTF = 0x2c,
         CNF1 = 0x2a,
         CNF2 = 0x29,
@@ -59,31 +57,50 @@ private:
         TXB0CTRL = 0x30,
     };
     void timing();
+    void attachReceiveInterrupt();
+    void detachReceiveInterrupt();
+    static void receiveInterruptISR(void *arg);
 };
 
-struct SJW : Field<2,6> {
-    // CNF1
+const size_t max = 8;
+struct receive_msg_t {
+    uint32_t identifier;
+    uint8_t data_length_code;
+    uint8_t data[max];
+};
+
+// some template magic to simplify writing bit fields
+// for use with bitModifyRegister
+struct FieldValue {
+    const uint8_t mask;
+    const uint8_t bits;
+    FieldValue(uint8_t mask, uint8_t bits) : mask(mask), bits(bits) {}
+};
+// WID is the number of bits in the field
+// LSB is the least significant bit offset from the right
+template<uint8_t WID, uint8_t LSB>
+struct Field : public FieldValue {
+    Field(uint8_t value) : FieldValue((((1 << WID) - 1) << LSB), value << LSB) { }
+};
+
+struct SJW : Field<2,6> { // CNF1
     SJW(uint8_t value) : Field(value) {};
 };
-struct BRP : Field<6, 0> {
-    // CNF1
+struct BRP : Field<6, 0> { // CNF1
     BRP(uint8_t value) : Field(value) {};
 };
 struct SAM : Field<1, 6> {
     SAM(uint8_t value) : Field(value) {};
 };
-struct PHSEG1 : Field<3, 3> {
-    // CNF2
+struct PHSEG1 : Field<3, 3> { // CNF2
     PHSEG1(uint8_t value) : Field(value) {};
 };
-struct PRSEG : Field<3, 0> {
-    // CNF2
+struct PRSEG : Field<3, 0> { // CNF2
     PRSEG(uint8_t value) : Field(value) {};
 };
-struct PHSEG2 : Field<3, 0> {
-    // CNF3
+struct PHSEG2 : Field<3, 0> { // CNF3
     PHSEG2(uint8_t value) : Field(value) {};
 };
-struct REQOP : Field<3, 5> {
+struct REQOP : Field<3, 5> { // CANCTRL
     REQOP(uint8_t value) : Field(value) {}
 };

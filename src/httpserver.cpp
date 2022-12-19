@@ -131,13 +131,22 @@ std::string HttpServer::getMimeType(std::string path) {
         { "css", "text/css" },
         { "ico", "image/ico" },
     };
+
     // or C++20 contains()
-    try {
-        return getMimeType.at(suffix);
-    }
-    catch (...) {
-        return std::string("text/plain");
-    }
+    
+    // C++11 exceptions
+    // try {
+    //     return getMimeType.at(suffix);
+    // }
+    // catch (...) {
+    //     return std::string("text/plain");
+    // }
+
+    // C++11 no exceptions
+    auto search = getMimeType.find(suffix);
+    return (search == getMimeType.end())
+        ? std::string("text/plain")
+        : search->second; 
 }
 
 void HttpServer::sendFrame(std::string data) {
