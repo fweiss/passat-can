@@ -2,6 +2,8 @@
 
 #include "esp_log.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
+#include "driver/gpio.h"
 
 // todo convert these to cont int
 #define ESP32_S3_DEVKIT
@@ -54,9 +56,9 @@ void MCP25625::init() {
 
     ESP_LOGI(TAG, "spi device configured");
 
-    // registerTest();
-    receiveTest();
-    // loopbackTest();
+    // testRegisters();
+    testReceive();
+    // testLoopBack();
 
     err = spi_bus_remove_device(spi);
     ESP_ERROR_CHECK(err);
@@ -112,7 +114,7 @@ void MCP25625::writeRegister(uint8_t const address, uint8_t const value) {
     // ESP_LOGI(TAG, "read: %d %x %x %x %x", readmcpresult->rxlength, readmcpresult->rx_data[0],  readmcpresult->rx_data[1],  readmcpresult->rx_data[2],  readmcpresult->rx_data[3]);
 }
 
-void MCP25625::registerTest() {
+void MCP25625::testRegisters() {
     ESP_LOGI(TAG, "starting register test");
 
     reset();
@@ -131,11 +133,12 @@ void MCP25625::registerTest() {
     bitModifyRegister(reg::CNF1, sjw);
 }
 
-void MCP25625::receiveTest() {
+void MCP25625::testReceive() {
     ESP_LOGI(TAG, "starting receive test");
     reset();
     timing();
     bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
+    bitModifyRegister(reg::CANINTE, 0x01, 0x01); // todo abstract
     REQOP normalMode(0); // get out of configuration mode
     bitModifyRegister(reg::CANCTRL, normalMode);
     while (true) {
@@ -222,7 +225,7 @@ void MCP25625::timing() {
     // writeRegister(reg::CNF3, 0x84);
 }
 
-void MCP25625::loopbackTest() {
+void MCP25625::testLoopBack() {
     ESP_LOGI(TAG, "starting loopback test");
 
     reset();
@@ -247,4 +250,28 @@ void MCP25625::loopbackTest() {
         readRegister(reg::CANINTF, canintf);
         ESP_LOGI(TAG, "loopback canintf %x", canintf);
     }
+}
+
+void MCP25625::attachReceiveInterrupt() {
+    esp_err_t err;
+    // err = esp_intr_alloc(source, flags, handler, arg, &receiveInterruptHandle);
+
+    receiveQueue = xQueueCreate(10, sizeof(int));
+
+    const gpio_num_t interruptPin = GPIO_NUM_21;
+
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(interruptPin, receiveInterruptISR, this);
+
+}
+void MCP25625::detachReceiveInterrupt() {
+    esp_err_t err;
+    err = esp_intr_free(receiveInterruptHandle);
+}
+void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
+    // check int flag
+    // get message buffer
+    // clear in flag
+    receive_msg_t message;
+    xQueueSendFromISR(static_cast<MCP25625*>(arg)->receiveQueue, &message, NULL);
 }

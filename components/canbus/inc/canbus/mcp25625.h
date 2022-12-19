@@ -1,8 +1,13 @@
 #pragma once
 
 #include "driver/spi_master.h"
+#include "esp_intr_alloc.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
 
 struct FieldValue;
+struct receive_msg_t;
 
 class MCP25625 { // : public canbus
 public:
@@ -16,12 +21,14 @@ public:
     void bitModifyRegister(uint8_t const address, FieldValue f);
     void reset();
 
-    void registerTest();
-    void receiveTest();
-    void loopbackTest();
+    void testRegisters();
+    void testReceive();
+    void testLoopBack();
 private:
     // this is the device object
     spi_device_handle_t spi;
+    intr_handle_t receiveInterruptHandle;
+    QueueHandle_t receiveQueue;
 
     // the spi interface requires int16_t, but mcp uses only uint8_t
     // mc25625 SPI command enumeration
@@ -35,6 +42,7 @@ private:
     enum reg {
         CANCTRL = 0x0f,
         CANSTAT = 0x0e,
+        CANINTE = 0x2b,
         CANINTF = 0x2c,
         CNF1 = 0x2a,
         CNF2 = 0x29,
@@ -49,6 +57,16 @@ private:
         TXB0CTRL = 0x30,
     };
     void timing();
+    void attachReceiveInterrupt();
+    void detachReceiveInterrupt();
+    static void receiveInterruptISR(void *arg);
+};
+
+const size_t max = 8;
+struct receive_msg_t {
+    uint32_t identifier;
+    uint8_t data_length_code;
+    uint8_t data[max];
 };
 
 // some template magic to simplify writing bit fields
