@@ -66,7 +66,7 @@ void app_main(void)
     }
 
     ESP_ERROR_CHECK(esp_netif_init());
-    wifi.startStation();
+    // wifi.startStation();
     // wifi.startAccessPoint();
 
     // size_t esp_netif_get_nr_of_ifs(void)
@@ -85,6 +85,7 @@ void app_main(void)
     };
     httpServer.start();
 
+#ifndef MCP25625_CAN
     canbus.onRecvFrame([] (twai_message_t & message) {
         //Process received message
         // if (message.flags & CAN_MSG_FLAG_EXTD) {
@@ -105,16 +106,19 @@ void app_main(void)
         }
     });
     canbus.init();
+#endif
 
-#ifdef MCP25625
+#ifdef MCP25625_CAN
     mcp25625.init();
 #endif
 
+#ifndef MCP25625_CAN
     // vTaskDelay(10000 / portTICK_PERIOD_MS);
     while (true) {
         canbus.triggerRead();
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
+#endif
 
     // not yet implemented, placeholder
     // esp_netif_deinit();

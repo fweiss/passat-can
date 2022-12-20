@@ -7,17 +7,17 @@
 
 static char const * const TAG = "CAN";
 
-// #ifdef ESP32_S3
-// // s3 does not define GPIO_22
-// const gpio_num_t tx_io_num = GPIO_NUM_21;
-// const gpio_num_t rx_io_num = GPIO_NUM_20;
-// #else
-// const gpio_num_t tx_io_num = GPIO_NUM_21;
-// const gpio_num_t rx_io_num = GPIO_NUM_22;
-// #endif
-
+#ifdef ESP32_S3
+// s3 does not define GPIO_22
+const gpio_num_t tx_io_num = GPIO_NUM_21;
+const gpio_num_t rx_io_num = GPIO_NUM_20;
+#else
 const gpio_num_t tx_io_num = GPIO_NUM_21;
 const gpio_num_t rx_io_num = GPIO_NUM_22;
+#endif
+
+// const gpio_num_t tx_io_num = GPIO_NUM_21;
+// const gpio_num_t rx_io_num = GPIO_NUM_22;
 
 CanBus::CanBus() {
      recvCallback = [] (twai_message_t & message) {};
