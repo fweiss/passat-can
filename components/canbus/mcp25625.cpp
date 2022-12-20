@@ -24,7 +24,7 @@ static char const * const TAG = "mcp25625";
 const int spi_clock_speed = 10*1000*1000;
 
 MCP25625::MCP25625() {
-
+    receiveQueue = xQueueCreate(10, sizeof(receive_msg_t));
 }
 MCP25625::~MCP25625() {
 }
@@ -47,7 +47,6 @@ void MCP25625::init() {
     };
 
     esp_err_t err;
-    const spi_host_device_t canHost = SPI3_HOST;
     err = spi_bus_initialize(canHost, &buscfg, SPI_DMA_CH_AUTO);
     ESP_ERROR_CHECK(err);
 
@@ -59,6 +58,10 @@ void MCP25625::init() {
     // testRegisters();
     testReceive();
     // testLoopBack();
+}
+
+void MCP25625::deinit() {
+    esp_err_t err;
 
     err = spi_bus_remove_device(spi);
     ESP_ERROR_CHECK(err);
@@ -256,8 +259,6 @@ void MCP25625::attachReceiveInterrupt() {
     esp_err_t err;
     // err = esp_intr_alloc(source, flags, handler, arg, &receiveInterruptHandle);
 
-    receiveQueue = xQueueCreate(10, sizeof(int));
-
     const gpio_num_t interruptPin = GPIO_NUM_21;
 
     gpio_install_isr_service(0);
@@ -269,9 +270,34 @@ void MCP25625::detachReceiveInterrupt() {
     err = esp_intr_free(receiveInterruptHandle);
 }
 void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
+    // capture object pointer from opaque arg
+    MCP25625 *self = static_cast<MCP25625*>(arg);
+    if (self != NULL) {
+        self->receiveDataEnqueue();
+    }
+}
+
+void MCP25625::receiveDataEnqueue() {
     // check int flag
-    // get message buffer
-    // clear in flag
-    receive_msg_t message;
-    xQueueSendFromISR(static_cast<MCP25625*>(arg)->receiveQueue, &message, NULL);
+    uint8_t canintf;
+    readRegister(reg::CANINTF, canintf);
+    if (canintf & 0x01) { // check rb0 interrupt
+        uint8_t rxb0dlc;
+        readRegister(reg::RXB0DLC, rxb0dlc);
+        uint8_t dlc = rxb0dlc & 0x0f;
+        uint8_t rxbosidh;
+        readRegister(reg::RXB0SIDH, rxbosidh);
+        uint8_t rxbosidl;
+        readRegister(reg::RXB0SIDL, rxbosidl);
+        uint16_t sid = (rxbosidh << 3) | ((rxbosidl & 0xe0) >> 5);
+
+        receive_msg_t message;
+        message.identifier = sid;
+        message.data_length_code = dlc;
+        // todo read all the bytes
+        readRegister(reg::RXB0D0, message.data[0]);
+
+        xQueueSendFromISR(receiveQueue, &message, NULL);
+        bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
+    }
 }

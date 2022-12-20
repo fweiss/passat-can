@@ -15,6 +15,7 @@ public:
     virtual ~MCP25625();
 
     void init();
+    void deinit();
     void readRegister(uint8_t const address, uint8_t & value);
     void writeRegister(uint8_t const address, uint8_t const value);
     void bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value);
@@ -29,6 +30,7 @@ private:
     spi_device_handle_t spi;
     intr_handle_t receiveInterruptHandle;
     QueueHandle_t receiveQueue;
+    const spi_host_device_t canHost = SPI3_HOST;
 
     // the spi interface requires int16_t, but mcp uses only uint8_t
     // mc25625 SPI command enumeration
@@ -55,11 +57,15 @@ private:
         TXB0SIDL = 0x32,
         TXB0DLC = 0x35,
         TXB0CTRL = 0x30,
+        RXB0D0 = 0x66,
+        RXB0SIDH = 0x61,
+        RXB0SIDL = 0x62,
     };
     void timing();
     void attachReceiveInterrupt();
     void detachReceiveInterrupt();
     static void receiveInterruptISR(void *arg);
+    void receiveDataEnqueue();
 };
 
 const size_t max = 8;

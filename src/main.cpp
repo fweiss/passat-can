@@ -110,6 +110,8 @@ void app_main(void)
 
 #ifdef MCP25625_CAN
     mcp25625.init();
+    mcp25625.testReceive();
+    mcp25625.deinit();
 #endif
 
 #ifndef MCP25625_CAN
