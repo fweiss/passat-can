@@ -12,6 +12,7 @@
 extern "C" {
 	void app_main(void);
 }
+
 static const char *TAG = "passat-can";
 
 WiFi wifi;
@@ -19,7 +20,7 @@ CanBus canbus;
 HttpServer httpServer;
 MCP25625 mcp25625;
 
-void app_main() {
+void app_mainy() {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -33,7 +34,7 @@ void app_main() {
 
 }
 
-void app_mainx(void)
+void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -43,7 +44,7 @@ void app_mainx(void)
     ESP_ERROR_CHECK(ret);
 
     esp_vfs_spiffs_conf_t conf = {
-      .base_path = "/spiffs",
+      .base_path = "/spiffs", // see partitons.csv
       .partition_label = NULL,
       .max_files = 5,
       .format_if_mount_failed = true
@@ -105,7 +106,9 @@ void app_mainx(void)
     });
     canbus.init();
 
+#ifdef MCP25625
     mcp25625.init();
+#endif
 
     // vTaskDelay(10000 / portTICK_PERIOD_MS);
     while (true) {

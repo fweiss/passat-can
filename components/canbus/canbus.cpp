@@ -7,22 +7,23 @@
 
 static char const * const TAG = "CAN";
 
-#define ESP32_S3
-#ifdef ESP32_S3
-// s3 does not define GPIO_22
-const gpio_num_t tx_io_num = GPIO_NUM_21;
-const gpio_num_t rx_io_num = GPIO_NUM_20;
-#elif
+// #ifdef ESP32_S3
+// // s3 does not define GPIO_22
+// const gpio_num_t tx_io_num = GPIO_NUM_21;
+// const gpio_num_t rx_io_num = GPIO_NUM_20;
+// #else
+// const gpio_num_t tx_io_num = GPIO_NUM_21;
+// const gpio_num_t rx_io_num = GPIO_NUM_22;
+// #endif
+
 const gpio_num_t tx_io_num = GPIO_NUM_21;
 const gpio_num_t rx_io_num = GPIO_NUM_22;
-#endif
 
 CanBus::CanBus() {
      recvCallback = [] (twai_message_t & message) {};
  }
 
 void CanBus::init() {
-    //Initialize configuration structures using macro initializers
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(tx_io_num, rx_io_num, TWAI_MODE_NORMAL);
     twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
@@ -31,7 +32,6 @@ void CanBus::init() {
     // f_config.acceptance_code = (0x320 << 21);
     // f_config.acceptance_mask = ~(0x7ff << 21);
 
-    //Install CAN driver
     if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
         ESP_LOGI(TAG, "Driver installed");
     } else {
@@ -39,15 +39,13 @@ void CanBus::init() {
         return;
     }
 
-    //Start CAN driver
     if (twai_start() == ESP_OK) {
         ESP_LOGI(TAG, "Driver started");
     } else {
         ESP_LOGE(TAG, "Failed to start driver");
         return;
     }
-
-    
+   
     //Wait for message to be received
     twai_message_t message;
     if (twai_receive(&message, pdMS_TO_TICKS(10000)) == ESP_OK) {
@@ -82,7 +80,7 @@ void CanBus::sendFrame(twai_message_t & message) {
     esp_err_t err;
     err = twai_transmit(&message, pdMS_TO_TICKS(1000));
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "tramsit message failed: %x", err);
+        ESP_LOGE(TAG, "tramsit err: %x", err);
     }
 }
 
@@ -93,7 +91,7 @@ void CanBus::triggerRead() {
     if (err == ESP_OK) {
         // ESP_LOGI(TAG, "Message received");
     } else {
-        ESP_LOGE(TAG, "Failed to receive message");
+        ESP_LOGE(TAG, "receive err: %x", err);
         return;
     }
     recvCallback(message); 
