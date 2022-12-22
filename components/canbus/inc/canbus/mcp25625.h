@@ -11,25 +11,33 @@ struct receive_msg_t;
 
 class MCP25625 { // : public canbus
 public:
+    QueueHandle_t receiveQueue;
     MCP25625();
+
     virtual ~MCP25625();
 
     void init();
     void deinit();
+
+    // SPI-ness
     void readRegister(uint8_t const address, uint8_t & value);
     void writeRegister(uint8_t const address, uint8_t const value);
     void bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value);
     void bitModifyRegister(uint8_t const address, FieldValue f);
     void reset();
 
+    void attachReceiveInterrupt();
+    void detachReceiveInterrupt();
+    bool receiveMessage(receive_msg_t & message);
+
     void testRegisters();
     void testReceive();
     void testLoopBack();
+    void testReceiveStatus();
 private:
     // this is the device object
     spi_device_handle_t spi;
     intr_handle_t receiveInterruptHandle;
-    QueueHandle_t receiveQueue;
     const spi_host_device_t canHost = SPI3_HOST;
 
     // the spi interface requires int16_t, but mcp uses only uint8_t
@@ -62,8 +70,6 @@ private:
         RXB0SIDL = 0x62,
     };
     void timing();
-    void attachReceiveInterrupt();
-    void detachReceiveInterrupt();
     static void receiveInterruptISR(void *arg);
     void receiveDataEnqueue();
 };

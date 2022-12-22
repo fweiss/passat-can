@@ -10,7 +10,7 @@
 #define PIN_NUM_MISO 13
 #define PIN_NUM_MOSI 11
 #define PIN_NUM_CLK  12
-#define PIN_NUM_CS  10
+#define PIN_NUM_CS  10 // fixme s/b 15?
 #ifdef ESP32_S3_DEVKIT
 #elif
 #define PIN_NUM_MISO 12
@@ -54,9 +54,10 @@ void MCP25625::init() {
     ESP_ERROR_CHECK(err);
 
     ESP_LOGI(TAG, "spi device configured");
+    reset();
 
     // testRegisters();
-    testReceive();
+    // testReceive();
     // testLoopBack();
 }
 
@@ -144,7 +145,11 @@ void MCP25625::testReceive() {
     bitModifyRegister(reg::CANINTE, 0x01, 0x01); // todo abstract
     REQOP normalMode(0); // get out of configuration mode
     bitModifyRegister(reg::CANCTRL, normalMode);
-    while (true) {
+
+    // it seems to take a bit of time for the driver to set all the pins
+    // vTaskDelay(10 / portTICK_PERIOD_MS);
+
+    while (false) {
         // uint8_t rec;
         // uint8_t eflg;
         // readRegister(reg::REC, rec);
@@ -254,34 +259,78 @@ void MCP25625::testLoopBack() {
         ESP_LOGI(TAG, "loopback canintf %x", canintf);
     }
 }
+static QueueHandle_t *gg;
 
 void MCP25625::attachReceiveInterrupt() {
     esp_err_t err;
+
+    ESP_LOGI(TAG, "attaching receive interrupt");
+
     // err = esp_intr_alloc(source, flags, handler, arg, &receiveInterruptHandle);
+    // gpio_install_isr_service
 
     const gpio_num_t interruptPin = GPIO_NUM_21;
-
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(interruptPin, receiveInterruptISR, this);
-
+    gpio_pad_select_gpio(interruptPin);
+    gpio_set_direction(interruptPin, GPIO_MODE_INPUT);
+    gpio_pulldown_dis(interruptPin);
+    gpio_pullup_en(interruptPin);
+    gpio_set_intr_type(interruptPin, GPIO_INTR_NEGEDGE);
+gg = &receiveQueue;
+    gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
+    err = gpio_isr_handler_add(interruptPin, receiveInterruptISR, this);
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "give this %p", this);
+    } else {
+        ESP_LOGE(TAG, "ist handler add err: %x", err);
+    }
 }
 void MCP25625::detachReceiveInterrupt() {
     esp_err_t err;
     err = esp_intr_free(receiveInterruptHandle);
 }
+
+// a little adapter to dispatch methods from a static ISR
+// void MCP25625::receiveInterruptISR(void *arg) {
+//     // ESP_LOGI(TAG, "got this %p", arg);
+//     // capture object pointer from opaque arg
+//     MCP25625 *self = static_cast<MCP25625*>(arg);
+//     if (self != NULL) {
+//         gg->receiveDataEnqueue();
+//     }
+// }
 void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
-    // capture object pointer from opaque arg
-    MCP25625 *self = static_cast<MCP25625*>(arg);
-    if (self != NULL) {
-        self->receiveDataEnqueue();
-    }
+    receive_msg_t message;
+    xQueueSendFromISR(*gg, &message, NULL);
 }
 
 void MCP25625::receiveDataEnqueue() {
-    // check int flag
     uint8_t canintf;
     readRegister(reg::CANINTF, canintf);
-    if (canintf & 0x01) { // check rb0 interrupt
+    // if (canintf & 0x01) { // check rb0 interrupt
+    //     uint8_t rxb0dlc;
+    //     readRegister(reg::RXB0DLC, rxb0dlc);
+    //     uint8_t dlc = rxb0dlc & 0x0f;
+    //     uint8_t rxbosidh;
+    //     readRegister(reg::RXB0SIDH, rxbosidh);
+    //     uint8_t rxbosidl;
+    //     readRegister(reg::RXB0SIDL, rxbosidl);
+    //     uint16_t sid = (rxbosidh << 3) | ((rxbosidl & 0xe0) >> 5);
+
+    //     receive_msg_t message;
+    //     message.identifier = sid;
+    //     message.data_length_code = dlc;
+    //     // todo read all the bytes
+    //     readRegister(reg::RXB0D0, message.data[0]);
+
+    //     xQueueSendFromISR(receiveQueue, &message, NULL);
+        // bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
+    // }
+}
+
+bool MCP25625::receiveMessage(receive_msg_t & message) {
+    uint8_t canintf;
+    readRegister(reg::CANINTF, canintf);
+    if (canintf & 0x01) {
         uint8_t rxb0dlc;
         readRegister(reg::RXB0DLC, rxb0dlc);
         uint8_t dlc = rxb0dlc & 0x0f;
@@ -291,13 +340,26 @@ void MCP25625::receiveDataEnqueue() {
         readRegister(reg::RXB0SIDL, rxbosidl);
         uint16_t sid = (rxbosidh << 3) | ((rxbosidl & 0xe0) >> 5);
 
-        receive_msg_t message;
         message.identifier = sid;
         message.data_length_code = dlc;
         // todo read all the bytes
         readRegister(reg::RXB0D0, message.data[0]);
 
-        xQueueSendFromISR(receiveQueue, &message, NULL);
+        // do this here instead of ISR - assume internal FIFO
         bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
+        bitModifyRegister(reg::CANINTE, 0x01, 0x01); // todo abstract
+
+        return true;
     }
+    return false;
+}
+
+void MCP25625::testReceiveStatus() {
+    uint8_t canintf;
+    readRegister(reg::CANINTF, canintf);
+    uint8_t caninte;
+    readRegister(reg::CANINTE, caninte);
+    uint8_t eflg;
+    readRegister(reg::EFLG, eflg);
+    ESP_LOGI(TAG, "receive status cantf: %x caninte: %x eflg %x", canintf, caninte, eflg);
 }
