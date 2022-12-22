@@ -112,11 +112,11 @@ void app_main(void)
 
 #ifdef MCP25625_CAN
     mcp25625.init();
-    xTaskCreate(canReceiveTask, "can receive task", 2048, &mcp25625.receiveQueue, 1, NULL);
+    xTaskCreate(canReceiveTask, "can receive task", 4096, &mcp25625.receiveQueue, 1, NULL);
     mcp25625.attachReceiveInterrupt();
     mcp25625.testReceive();
     while (true) {
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
         mcp25625.testReceiveStatus();
     }
     mcp25625.deinit();
@@ -148,7 +148,7 @@ void canReceiveTask(void * pvParameters) {
             receive_msg_t message;
             bool success = mcp25625.receiveMessage(message);
             if (success) {
-                ESP_LOGI(TAG, "dlc %d", message.data_length_code);
+                ESP_LOGI(TAG, "fid %x dlc %d", message.identifier, message.data_length_code);
             } else {
                 ESP_LOGI(TAG, "nothing to receive");
             }

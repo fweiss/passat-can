@@ -300,7 +300,11 @@ void MCP25625::detachReceiveInterrupt() {
 // }
 void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
     receive_msg_t message;
-    xQueueSendFromISR(*gg, &message, NULL);
+    BaseType_t xHigherPriorityTaskWokenByPost = pdFALSE;
+    xQueueSendFromISR(*gg, &message, &xHigherPriorityTaskWokenByPost);
+    if (xHigherPriorityTaskWokenByPost) {
+        portYIELD_FROM_ISR();
+    }
 }
 
 void MCP25625::receiveDataEnqueue() {
@@ -347,7 +351,6 @@ bool MCP25625::receiveMessage(receive_msg_t & message) {
 
         // do this here instead of ISR - assume internal FIFO
         bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
-        bitModifyRegister(reg::CANINTE, 0x01, 0x01); // todo abstract
 
         return true;
     }
