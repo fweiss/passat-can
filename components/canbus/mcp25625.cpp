@@ -201,3 +201,15 @@ void MCP25625::testReceiveStatus() {
     readRegister(reg::EFLG, eflg);
     ESP_LOGI(TAG, "receive status cantf: %x caninte: %x eflg %x", canintf, caninte, eflg);
 }
+
+void MCP25625::startReceiveMessages() {
+    ESP_LOGI(TAG, "starting receive test");
+    reset();
+    timing();
+    bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
+    bitModifyRegister(reg::CANINTE, 0x01, 0x01); // todo abstract
+    REQOP normalMode(0); // get out of configuration mode
+    bitModifyRegister(reg::CANCTRL, normalMode);
+    bitModifyRegister(reg::EFLG, 0x40, 0x00);
+    bitModifyRegister(reg::CANINTF, 0x20, 0x00);
+}

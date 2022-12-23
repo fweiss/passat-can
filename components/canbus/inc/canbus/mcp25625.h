@@ -21,6 +21,7 @@ public:
 
     void attachReceiveInterrupt();
     void detachReceiveInterrupt();
+    void startReceiveMessages();
     bool receiveMessage(receive_msg_t & message);
 
     void testRegisters();

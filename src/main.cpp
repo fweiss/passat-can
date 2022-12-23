@@ -114,7 +114,8 @@ void app_main(void)
     mcp25625.init();
     xTaskCreate(canReceiveTask, "can receive task", 4096, &mcp25625.receiveQueue, 1, NULL);
     mcp25625.attachReceiveInterrupt();
-    mcp25625.testReceive();
+    // mcp25625.testReceive();
+    mcp25625.startReceiveMessages();
     while (true) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
         mcp25625.testReceiveStatus();
