@@ -187,6 +187,7 @@ bool MCP25625::receiveMessage(receive_msg_t * message) {
         readArrayRegisters(0x61, (uint8_t*)&buf, sizeof(buf));
 
         message->identifier = (buf.sidh << 3) | ((buf.sidl & 0xe0) >> 5);
+        message->rtr = (buf.sidl & 0x10) >> 4;
         message->data_length_code = buf.dlc & 0x0f;
         memcpy(message->data, buf.data, sizeof(buf.data));
 

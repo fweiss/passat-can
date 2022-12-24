@@ -60,6 +60,7 @@ private:
 const size_t max = 8;
 struct receive_msg_t {
     uint32_t identifier;
+    uint8_t rtr;
     uint8_t data_length_code;
     uint8_t data[max];
 };
