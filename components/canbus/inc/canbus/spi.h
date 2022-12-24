@@ -14,6 +14,7 @@ public:
     void deinit();
 
     void readRegister(uint8_t const address, uint8_t & value);
+    void readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count);
     void writeRegister(uint8_t const address, uint8_t const value);
     void bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value);
     void bitModifyRegister(uint8_t const address, FieldValue f);

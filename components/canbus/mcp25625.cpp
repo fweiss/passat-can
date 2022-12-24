@@ -4,6 +4,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/gpio.h"
+#include <string.h>
 
 static char const * const TAG = "mcp25625";
 
@@ -146,6 +147,7 @@ gg = &receiveQueue;
 void MCP25625::detachReceiveInterrupt() {
     esp_err_t err;
     err = esp_intr_free(receiveInterruptHandle);
+    ESP_ERROR_CHECK(err); 
 }
 
 // a little adapter to dispatch methods from a static ISR
@@ -166,25 +168,29 @@ void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
     }
 }
 
-bool MCP25625::receiveMessage(receive_msg_t & message) {
+bool MCP25625::receiveMessage(receive_msg_t * message) {
     uint8_t canintf;
     readRegister(reg::CANINTF, canintf);
     if (canintf & 0x01) {
-        uint8_t rxb0dlc;
-        readRegister(reg::RXB0DLC, rxb0dlc);
-        uint8_t dlc = rxb0dlc & 0x0f;
-        uint8_t rxbosidh;
-        readRegister(reg::RXB0SIDH, rxbosidh);
-        uint8_t rxbosidl;
-        readRegister(reg::RXB0SIDL, rxbosidl);
-        uint16_t sid = (rxbosidh << 3) | ((rxbosidl & 0xe0) >> 5);
+        // alignment required by SPI DMA
+        struct alignas(32) buf {
+            // uint8_t ctrl;
+            uint8_t sidh;
+            uint8_t sidl;
+            uint8_t eid8;
+            uint8_t eid0;
+            uint8_t dlc;
+            uint8_t data[8];
+            uint8_t canstat;
+            uint8_t canctrl;
+        } buf;
+        readArrayRegisters(0x61, (uint8_t*)&buf, sizeof(buf));
 
-        message.identifier = sid;
-        message.data_length_code = dlc;
-        // todo read all the bytes
-        readRegister(reg::RXB0D0, message.data[0]);
+        message->identifier = (buf.sidh << 3) | ((buf.sidl & 0xe0) >> 5);
+        message->data_length_code = buf.dlc & 0x0f;
+        memcpy(message->data, buf.data, sizeof(buf.data));
 
-        // do this here instead of ISR - assume internal FIFO
+        // do this here instead of ISR
         bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
 
         return true;

@@ -28,6 +28,7 @@ void SPI::init() {
         .sclk_io_num = PIN_NUM_CLK,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
+        // .max_transfer_sz = 16,  // one "column" from mcp25625 register map
     };
     spi_device_interface_config_t devcfg {
         .command_bits = 8,
@@ -147,4 +148,19 @@ void SPI::reset() {
     transaction_ext.address_bits = 0;
     err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err); 
+}
+
+void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count) {
+    esp_err_t err;
+
+    spi_transaction_t transaction {};
+    transaction.cmd = cmd::READ;
+    transaction.addr = startAddress;
+    transaction.flags = 0;
+    transaction.rx_buffer = data;
+    transaction.length = 8 * count;
+    transaction.rxlength = 8 * count;
+
+    err = spi_device_transmit(spi, &transaction);
+    ESP_ERROR_CHECK(err);
 }

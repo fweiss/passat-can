@@ -118,7 +118,8 @@ void app_main(void)
     mcp25625.startReceiveMessages();
     while (true) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
-        mcp25625.testReceiveStatus();
+        // todo need a mutex
+        // mcp25625.testReceiveStatus();
     }
     mcp25625.deinit();
 #endif
@@ -147,9 +148,12 @@ void canReceiveTask(void * pvParameters) {
         receive_msg_t zmessage;
         if (xQueueReceive(*receiveQueue, &zmessage, portMAX_DELAY)) {
             receive_msg_t message;
-            bool success = mcp25625.receiveMessage(message);
+            bool success = mcp25625.receiveMessage(&message);
             if (success) {
-                ESP_LOGI(TAG, "fid %x dlc %d", message.identifier, message.data_length_code);
+                ESP_LOGI(TAG, "fid %x dlc %d data %x %x %x %x %x %x %x %x", 
+                    message.identifier, message.data_length_code, 
+                    message.data[0], message.data[1], message.data[2], message.data[3],
+                    message.data[4], message.data[5], message.data[6], message.data[7]);
             } else {
                 ESP_LOGI(TAG, "nothing to receive");
             }
