@@ -21,14 +21,13 @@ static char const * const TAG = "mcp25625-spi";
 const int spi_clock_speed = 10*1000*1000;
 
 void SPI::init() {
-        // default for .max_transfer_sz and .flags
+    // default for .max_transfer_sz and .flags
     spi_bus_config_t buscfg {
         .mosi_io_num = PIN_NUM_MOSI,
         .miso_io_num = PIN_NUM_MISO,
         .sclk_io_num = PIN_NUM_CLK,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        // .max_transfer_sz = 16,  // one "column" from mcp25625 register map
     };
     spi_device_interface_config_t devcfg {
         .command_bits = 8,
@@ -50,7 +49,7 @@ void SPI::init() {
 }
 
 void SPI::deinit() {
-        esp_err_t err;
+    esp_err_t err;
 
     err = spi_bus_remove_device(spi);
     ESP_ERROR_CHECK(err);
@@ -62,49 +61,31 @@ void SPI::deinit() {
 void SPI::readRegister(uint8_t const address, uint8_t & value) {
     esp_err_t err;
 
-    spi_transaction_t readmcp {};
-    readmcp.cmd = cmd::READ;
-    readmcp.addr = address;
-    readmcp.flags = SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA; // | SPI_TRANS_MODE_OCT;
-    readmcp.length = 8;
-    readmcp.rxlength = 8;
+    spi_transaction_t transaction {};
+    transaction.cmd = cmd::READ;
+    transaction.addr = address;
+    transaction.flags = SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA; // | SPI_TRANS_MODE_OCT;
+    transaction.length = 8;
+    transaction.rxlength = 8;
 
-    // err = spi_device_transmit(spi, &readmcp);
-    // ESP_ERROR_CHECK(err);
-    // value = readmcp.rx_data[0];
-
-    err = spi_device_queue_trans(spi, &readmcp, portMAX_DELAY);
+    err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err);
-
-    spi_transaction_t  * readmcpresult {};
-    err = spi_device_get_trans_result(spi, &readmcpresult, portMAX_DELAY);
-    ESP_ERROR_CHECK(err);
-    // ESP_LOGI(TAG, "read: %d %x %x %x %x", readmcpresult->rxlength, readmcpresult->rx_data[0],  readmcpresult->rx_data[1],  readmcpresult->rx_data[2],  readmcpresult->rx_data[3]);
-    value = readmcpresult->rx_data[0];
+    value = transaction.rx_data[0];
 }
 
 void SPI::writeRegister(uint8_t const address, uint8_t const value) {
     esp_err_t err;
 
-    spi_transaction_t readmcp {};
-    readmcp.cmd = cmd::WRITE;
-    readmcp.addr = address;
-    readmcp.flags = SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA; // | SPI_TRANS_MODE_OCT;
-    readmcp.length = 8;
-    readmcp.rxlength = 0;
-    readmcp.tx_data[0] = value;
+    spi_transaction_t transaction {};
+    transaction.cmd = cmd::WRITE;
+    transaction.addr = address;
+    transaction.flags = SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA; // | SPI_TRANS_MODE_OCT;
+    transaction.length = 8;
+    transaction.rxlength = 0;
+    transaction.tx_data[0] = value;
 
-    // // spi_device_transmit is only about 10% faster
-    // err = spi_device_transmit(spi, &readmcp);
-    // ESP_ERROR_CHECK(err);
-
-    err = spi_device_queue_trans(spi, &readmcp, portMAX_DELAY);
+    err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err);
-
-    spi_transaction_t  * readmcpresult {};
-    err = spi_device_get_trans_result(spi, &readmcpresult, portMAX_DELAY);
-    ESP_ERROR_CHECK(err);
-    // ESP_LOGI(TAG, "read: %d %x %x %x %x", readmcpresult->rxlength, readmcpresult->rx_data[0],  readmcpresult->rx_data[1],  readmcpresult->rx_data[2],  readmcpresult->rx_data[3]);
 }
 
 void SPI::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value) {
@@ -112,22 +93,14 @@ void SPI::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t v
 
     uint8_t data[2] = { mask, value };
 
-    spi_transaction_t readmcp {};
-    readmcp.cmd = cmd::BIT_MODIFY;
-    readmcp.addr = address;
-    readmcp.length = 16;
-    readmcp.rxlength = 0;
-    readmcp.tx_buffer = &data;
+    spi_transaction_t transaction {};
+    transaction.cmd = cmd::BIT_MODIFY;
+    transaction.addr = address;
+    transaction.length = 16;
+    transaction.rxlength = 0;
+    transaction.tx_buffer = &data;
 
-    // // spi_device_transmit is only about 10% faster
-    // err = spi_device_transmit(spi, &readmcp);
-    // ESP_ERROR_CHECK(err);
-
-    err = spi_device_queue_trans(spi, &readmcp, portMAX_DELAY);
-    ESP_ERROR_CHECK(err);
-
-    spi_transaction_t  * readmcpresult {};
-    err = spi_device_get_trans_result(spi, &readmcpresult, portMAX_DELAY);
+    err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err);
 }
 
@@ -146,6 +119,7 @@ void SPI::reset() {
     transaction.length = 0;
     transaction.rxlength = 0;
     transaction_ext.address_bits = 0;
+
     err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err); 
 }
