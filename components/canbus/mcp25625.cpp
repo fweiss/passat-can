@@ -206,7 +206,10 @@ void MCP25625::testReceiveStatus() {
     readRegister(reg::CANINTE, caninte);
     uint8_t eflg;
     readRegister(reg::EFLG, eflg);
-    ESP_LOGI(TAG, "receive status cantf: %x caninte: %x eflg %x", canintf, caninte, eflg);
+    uint8_t rec;
+    readRegister(reg::REC, rec);
+    ESP_LOGI(TAG, "receive status canintf: %x caninte: %x eflg %x rec %d", 
+        canintf, caninte, eflg, rec);
 }
 
 void MCP25625::startReceiveMessages() {
