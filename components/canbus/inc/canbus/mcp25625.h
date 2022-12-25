@@ -12,9 +12,10 @@ struct receive_msg_t;
 
 class MCP25625 : public SPI {
 public:
-    QueueHandle_t receiveQueue;
     MCP25625();
     virtual ~MCP25625();
+
+    QueueHandle_t receiveISRQueue;
 
     void init();
     void deinit();

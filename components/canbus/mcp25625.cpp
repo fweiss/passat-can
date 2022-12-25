@@ -9,7 +9,7 @@
 static char const * const TAG = "mcp25625";
 
 MCP25625::MCP25625() {
-    receiveQueue = xQueueCreate(10, sizeof(receive_msg_t));
+    receiveISRQueue = xQueueCreate(10, sizeof(receive_msg_t));
 }
 MCP25625::~MCP25625() {
 }
@@ -135,7 +135,7 @@ void MCP25625::attachReceiveInterrupt() {
     gpio_pulldown_dis(interruptPin);
     gpio_pullup_en(interruptPin);
     gpio_set_intr_type(interruptPin, GPIO_INTR_NEGEDGE);
-gg = &receiveQueue;
+gg = &receiveISRQueue;
     gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
     err = gpio_isr_handler_add(interruptPin, receiveInterruptISR, this);
     if (err == ESP_OK) {

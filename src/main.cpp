@@ -16,11 +16,13 @@ extern "C" {
 static const char *TAG = "passat-can";
 
 void canReceiveTask(void * pvParameters);
+void canReceiveMessageTask(void * args);
 
 WiFi wifi;
 CanBus canbus;
 HttpServer httpServer;
 MCP25625 mcp25625;
+QueueHandle_t receiveMessageQueue = xQueueCreate(10, sizeof(receive_msg_t));
 
 void app_mainy() {
     esp_err_t ret = nvs_flash_init();
@@ -112,14 +114,17 @@ void app_main(void)
 
 #ifdef MCP25625_CAN
     mcp25625.init();
-    xTaskCreate(canReceiveTask, "can receive task", 4096, &mcp25625.receiveQueue, 1, NULL);
+    xTaskCreate(canReceiveTask, "can isr task", 4096, &mcp25625.receiveISRQueue, 1, NULL);
+    // run the following on APP CPU
+    // the logging blocks the core and the ISR task can't finish before the next CAN frame is ready
+    xTaskCreatePinnedToCore(canReceiveMessageTask, "can isr task", 4096, &receiveMessageQueue, 1, NULL, APP_CPU_NUM);
     mcp25625.attachReceiveInterrupt();
     // mcp25625.testReceive();
     mcp25625.startReceiveMessages();
     while (true) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
         // todo need a mutex
-        // mcp25625.testReceiveStatus();
+        mcp25625.testReceiveStatus();
     }
     mcp25625.deinit();
 #endif
@@ -142,21 +147,30 @@ void app_main(void)
 void canReceiveTask(void * pvParameters) {
     ESP_LOGI(TAG, "starting can receive task");
 
-    QueueHandle_t *receiveQueue = static_cast<QueueHandle_t*>(pvParameters);
+    QueueHandle_t *receiveISRQueue = static_cast<QueueHandle_t*>(pvParameters);
 
     while (true) {
         receive_msg_t zmessage;
-        if (xQueueReceive(*receiveQueue, &zmessage, portMAX_DELAY)) {
+        if (xQueueReceive(*receiveISRQueue, &zmessage, portMAX_DELAY)) {
             receive_msg_t message;
             bool success = mcp25625.receiveMessage(&message);
             if (success) {
-                ESP_LOGI(TAG, "fid %x rtr %d dlc %d data %x %x %x %x %x %x %x %x", 
-                    message.identifier, message.rtr, message.data_length_code, 
-                    message.data[0], message.data[1], message.data[2], message.data[3],
-                    message.data[4], message.data[5], message.data[6], message.data[7]);
+                xQueueSend(receiveMessageQueue, &message, portMAX_DELAY);
             } else {
                 ESP_LOGI(TAG, "nothing to receive");
             }
+        }
+    }
+}
+
+void canReceiveMessageTask(void * args) {
+    receive_msg_t message;
+    while (true) {
+        if (xQueueReceive(receiveMessageQueue, &message, portMAX_DELAY)) {
+            ESP_LOGI(TAG, "fid %x rtr %d dlc %d data %x %x %x %x %x %x %x %x", 
+                message.identifier, message.rtr, message.data_length_code, 
+                message.data[0], message.data[1], message.data[2], message.data[3],
+                message.data[4], message.data[5], message.data[6], message.data[7]);
         }
     }
 }
