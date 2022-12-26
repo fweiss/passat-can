@@ -17,6 +17,7 @@ static const char *TAG = "passat-can";
 
 void canReceiveTask(void * pvParameters);
 void canReceiveMessageTask(void * args);
+void wsTask(void * args);
 
 WiFi wifi;
 CanBus canbus;
@@ -70,7 +71,7 @@ void app_main(void)
     }
 
     ESP_ERROR_CHECK(esp_netif_init());
-    // wifi.startStation();
+    wifi.startStation();
     // wifi.startAccessPoint();
 
     // size_t esp_netif_get_nr_of_ifs(void)
@@ -117,12 +118,12 @@ void app_main(void)
     xTaskCreate(canReceiveTask, "can isr task", 4096, &mcp25625.receiveISRQueue, 1, NULL);
     // run the following on APP CPU
     // the logging blocks the core and the ISR task can't finish before the next CAN frame is ready
-    xTaskCreatePinnedToCore(canReceiveMessageTask, "can isr task", 4096, &receiveMessageQueue, 1, NULL, APP_CPU_NUM);
+    xTaskCreatePinnedToCore(wsTask, "can isr task", 4096, &receiveMessageQueue, 1, NULL, APP_CPU_NUM);
     mcp25625.attachReceiveInterrupt();
     // mcp25625.testReceive();
     mcp25625.startReceiveMessages();
     while (true) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
         // todo need a mutex
         mcp25625.testReceiveStatus();
     }
@@ -174,3 +175,19 @@ void canReceiveMessageTask(void * args) {
         }
     }
 }
+
+void wsTask(void * args) {
+    receive_msg_t message;
+    while (true) {
+        if (xQueueReceive(receiveMessageQueue, &message, portMAX_DELAY)) {
+            if (httpServer.isWebsocketConnected()) {
+                static uint8_t data[TWAI_FRAME_MAX_DLC + 2];
+                data[0] = message.identifier & 0xff;
+                data[1] = (message.identifier >> 8) & 0xff;
+                memcpy(&data[2], message.data, message.data_length_code);
+                httpServer.sendFrame(data, message.data_length_code + 2);
+            }
+        }
+    }
+}
+
