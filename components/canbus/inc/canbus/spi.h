@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "driver/spi_master.h"
+#include "freertos/semphr.h"
 
 // mcp25625 spi-ness
 // specific commands
@@ -20,9 +21,13 @@ public:
     void bitModifyRegister(uint8_t const address, FieldValue f);
     void reset();
 private:
+    const spi_host_device_t canHost = SPI3_HOST;
     // this is the device object
     spi_device_handle_t spi;
-    const spi_host_device_t canHost = SPI3_HOST;
+
+    // needed to allow tasks to use spi_device_transmit
+    xSemaphoreHandle transactionMutex;
+    const TickType_t transactionMutexBlockTime = 50 /portTICK_PERIOD_MS;
 
     // the spi interface requires int16_t, but mcp uses only uint8_t
     // mc25625 SPI command enumeration

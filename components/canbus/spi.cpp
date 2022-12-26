@@ -45,6 +45,13 @@ void SPI::init() {
     err = spi_bus_add_device(canHost, &devcfg, &spi);
     ESP_ERROR_CHECK(err);
 
+    transactionMutex = xSemaphoreCreateBinary();
+    if (transactionMutex == NULL) {
+        ESP_LOGE(TAG, "failed to create semaphore");
+    }
+    // the above initializer put the semaphore in a "taken" state
+    xSemaphoreGive(transactionMutex);
+
     ESP_LOGI(TAG, "spi device configured");
 }
 
@@ -59,6 +66,11 @@ void SPI::deinit() {
 }
 
 void SPI::readRegister(uint8_t const address, uint8_t & value) {
+    if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
+        ESP_LOGE(TAG, "transactionMutex timeout");
+        return;
+    }
+
     esp_err_t err;
 
     spi_transaction_t transaction {};
@@ -71,9 +83,16 @@ void SPI::readRegister(uint8_t const address, uint8_t & value) {
     err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err);
     value = transaction.rx_data[0];
+
+    xSemaphoreGive(transactionMutex);
 }
 
 void SPI::writeRegister(uint8_t const address, uint8_t const value) {
+    if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
+        ESP_LOGE(TAG, "transactionMutex timeout");
+        return;
+    }
+
     esp_err_t err;
 
     spi_transaction_t transaction {};
@@ -86,9 +105,16 @@ void SPI::writeRegister(uint8_t const address, uint8_t const value) {
 
     err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err);
+
+    xSemaphoreGive(transactionMutex);
 }
 
 void SPI::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value) {
+    if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
+        ESP_LOGE(TAG, "transactionMutex timeout");
+        return;
+    }
+
     esp_err_t err;
 
     uint8_t data[2] = { mask, value };
@@ -102,6 +128,8 @@ void SPI::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t v
 
     err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err);
+
+    xSemaphoreGive(transactionMutex);
 }
 
 void SPI::bitModifyRegister(uint8_t address, FieldValue f) {
@@ -109,6 +137,11 @@ void SPI::bitModifyRegister(uint8_t address, FieldValue f) {
 }
 
 void SPI::reset() {
+    if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
+        ESP_LOGE(TAG, "transactionMutex timeout");
+        return;
+    }
+
     esp_err_t err;
 
     // using transaction_ext to set address length zero
@@ -122,9 +155,16 @@ void SPI::reset() {
 
     err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err); 
+
+    xSemaphoreGive(transactionMutex);
 }
 
 void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count) {
+    if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
+        ESP_LOGE(TAG, "transactionMutex timeout");
+        return;
+    }
+
     esp_err_t err;
 
     spi_transaction_t transaction {};
@@ -137,4 +177,6 @@ void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count
 
     err = spi_device_transmit(spi, &transaction);
     ESP_ERROR_CHECK(err);
+
+    xSemaphoreGive(transactionMutex);
 }
