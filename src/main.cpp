@@ -10,6 +10,7 @@
 #include "mcp25625.h"
 
 #include "twai_app.h"
+#include "app_mcp25625.h"
 
 extern "C" {
 	void app_main(void);
@@ -24,10 +25,14 @@ void wsTask(void * args);
 #define USEAPP 1
 #if USEAPP
 void app_main() {
-    TwaiApp app;
 
+#ifdef TWAI
+    TwaiApp app;
+#endif
+#if MCP25625_CAN
+    AppMcp25625 app;
+#endif
     app.init();
-    app.initBridge();
 
     app.start();
 }

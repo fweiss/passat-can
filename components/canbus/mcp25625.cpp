@@ -9,7 +9,8 @@
 static char const * const TAG = "mcp25625";
 
 MCP25625::MCP25625() {
-    receiveISRQueue = xQueueCreate(10, sizeof(receive_msg_t));
+    receiveISRQueue = xQueueCreate(10, sizeof(timestamp_t));
+    receiveMessageQueue = xQueueCreate(20, sizeof(receive_msg_t));
 }
 MCP25625::~MCP25625() {
 }
@@ -74,6 +75,7 @@ void MCP25625::testReceive() {
 }
 
 void MCP25625::timing() {
+    ESP_LOGI(TAG, "init can timing");
     SJW sjw(3); // code 3 = 4
     BRP brp(0);
     SAM sam(0);
@@ -124,7 +126,10 @@ static QueueHandle_t *gg;
 void MCP25625::attachReceiveInterrupt() {
     esp_err_t err;
 
-    ESP_LOGI(TAG, "attaching receive interrupt");
+    ESP_LOGI(TAG, "attach receive interrupt");
+
+    // task to read buffer separate from ISR
+    xTaskCreatePinnedToCore(receiveMessageTask, "receive task", 2048, this, 2, NULL, APP_CPU_NUM);
 
     // err = esp_intr_alloc(source, flags, handler, arg, &receiveInterruptHandle);
     // gpio_install_isr_service
@@ -148,24 +153,6 @@ void MCP25625::detachReceiveInterrupt() {
     esp_err_t err;
     err = esp_intr_free(receiveInterruptHandle);
     ESP_ERROR_CHECK(err); 
-}
-
-// a little adapter to dispatch methods from a static ISR
-// void MCP25625::receiveInterruptISR(void *arg) {
-//     // ESP_LOGI(TAG, "got this %p", arg);
-//     // capture object pointer from opaque arg
-//     MCP25625 *self = static_cast<MCP25625*>(arg);
-//     if (self != NULL) {
-//         gg->receiveDataEnqueue();
-//     }
-// }
-void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
-    receive_msg_t message;
-    BaseType_t xHigherPriorityTaskWokenByPost = pdFALSE;
-    xQueueSendFromISR(*gg, &message, &xHigherPriorityTaskWokenByPost);
-    if (xHigherPriorityTaskWokenByPost) {
-        portYIELD_FROM_ISR();
-    }
 }
 
 bool MCP25625::receiveMessage(receive_msg_t * message) {
@@ -213,7 +200,7 @@ void MCP25625::testReceiveStatus() {
 }
 
 void MCP25625::startReceiveMessages() {
-    ESP_LOGI(TAG, "starting receive test");
+    ESP_LOGI(TAG, "start receive messages");
     reset();
     timing();
     bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
@@ -222,4 +209,36 @@ void MCP25625::startReceiveMessages() {
     bitModifyRegister(reg::CANCTRL, normalMode);
     bitModifyRegister(reg::EFLG, 0x40, 0x00);
     bitModifyRegister(reg::CANINTF, 0x20, 0x00);
+}
+
+// defer reading the message from the receive buffer
+void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
+    timestamp_t timestamp = esp_log_timestamp();
+    BaseType_t xHigherPriorityTaskWokenByPost = pdFALSE;
+    BaseType_t err = xQueueSendFromISR(*gg, &timestamp, &xHigherPriorityTaskWokenByPost);
+    // ESP_DRAM_LOGI(TAG, "isr %d", pdTRUE);
+    if (xHigherPriorityTaskWokenByPost) {
+        portYIELD_FROM_ISR();
+    }
+}
+
+// quickly read the message from the receive buffer and defer it to the app
+// this must take less than a CAN message time to prevent buffer overflow
+void MCP25625::receiveMessageTask(void * pvParameters) {
+    ESP_LOGI(TAG, "starting can receive task");
+
+    MCP25625 * self = static_cast<MCP25625*>(pvParameters);
+    while (true) {
+        timestamp_t timestamp;
+        if (xQueueReceive(self->receiveISRQueue, &timestamp, portMAX_DELAY)) {
+            receive_msg_t message;
+            bool success = self->receiveMessage(&message);
+            if (success) {
+                xQueueSend(self->receiveMessageQueue, &message, portMAX_DELAY);
+            } else {
+                ESP_LOGI(TAG, "nothing to receive");
+            }
+        }
+    }
+
 }

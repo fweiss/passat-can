@@ -13,6 +13,9 @@ public:
 
     virtual void start();
 
+    virtual void initBridge();
+    virtual void startBridge();
+
 protected:
     WiFi wifi;
     HttpServer httpServer;
@@ -22,6 +25,5 @@ private:
     void initSpiffs();
     void initWifi();
     void initHttpServer();
-    virtual void initBridge();
 
 };

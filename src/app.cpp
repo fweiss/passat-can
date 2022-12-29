@@ -26,7 +26,7 @@ void App::init() {
     // initHttpServer();
 
     ESP_LOGI(TAG, "init bridge");
-    // initBridge();
+    initBridge();
 }
 
 void App::initNvs() {
@@ -74,6 +74,11 @@ void App::initBridge() {
     // WS connection
 }
 
+void App::startBridge() {
+    
+}
+
 void App::start() {
     httpServer.start();
+    startBridge();
 }

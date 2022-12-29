@@ -9,6 +9,7 @@
 #include "spi.h"
 
 struct receive_msg_t;
+typedef uint32_t timestamp_t;
 
 class MCP25625 : public SPI {
 public:
@@ -16,6 +17,7 @@ public:
     virtual ~MCP25625();
 
     QueueHandle_t receiveISRQueue;
+    QueueHandle_t receiveMessageQueue;
 
     void init();
     void deinit();
@@ -32,6 +34,7 @@ public:
 private:
 
     intr_handle_t receiveInterruptHandle;
+    static void receiveMessageTask(void * pvParameters);
 
     // mcp25625 register address enumeration
     enum reg {
