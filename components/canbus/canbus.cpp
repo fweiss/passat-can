@@ -7,23 +7,25 @@
 
 static char const * const TAG = "CAN";
 
-#ifdef ESP32_S3
-// s3 does not define GPIO_22
-const gpio_num_t tx_io_num = GPIO_NUM_21;
-const gpio_num_t rx_io_num = GPIO_NUM_20;
-#else
-const gpio_num_t tx_io_num = GPIO_NUM_21;
-const gpio_num_t rx_io_num = GPIO_NUM_22;
-#endif
-
+// #ifdef ESP32_S3
+// // s3 does not define GPIO_22
 // const gpio_num_t tx_io_num = GPIO_NUM_21;
-// const gpio_num_t rx_io_num = GPIO_NUM_22;
+// const gpio_num_t rx_io_num = GPIO_NUM_20;
+// #else
+// const gpio_num_t tx_io_num = GPIO_NUM_22;
+// const gpio_num_t rx_io_num = GPIO_NUM_21;
+// #endif
+
+const gpio_num_t tx_io_num = GPIO_NUM_22;
+const gpio_num_t rx_io_num = GPIO_NUM_23;
 
 CanBus::CanBus() {
      recvCallback = [] (twai_message_t & message) {};
  }
 
 void CanBus::init() {
+    esp_err_t err;
+
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(tx_io_num, rx_io_num, TWAI_MODE_NORMAL);
     twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
@@ -32,10 +34,11 @@ void CanBus::init() {
     // f_config.acceptance_code = (0x320 << 21);
     // f_config.acceptance_mask = ~(0x7ff << 21);
 
-    if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
+    err = twai_driver_install(&g_config, &t_config, &f_config);
+    if (err == ESP_OK) {
         ESP_LOGI(TAG, "Driver installed");
     } else {
-        ESP_LOGE(TAG, "Failed to install driver");
+        ESP_LOGE(TAG, "Failed to install driver: %s", esp_err_to_name(err));
         return;
     }
 

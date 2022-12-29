@@ -9,6 +9,8 @@
 #include "httpserver.h"
 #include "mcp25625.h"
 
+#include "twai_app.h"
+
 extern "C" {
 	void app_main(void);
 }
@@ -18,6 +20,18 @@ static const char *TAG = "passat-can";
 void canReceiveTask(void * pvParameters);
 void canReceiveMessageTask(void * args);
 void wsTask(void * args);
+
+#define USEAPP 1
+#if USEAPP
+void app_main() {
+    TwaiApp app;
+
+    app.init();
+    app.initBridge();
+
+    app.start();
+}
+#else
 
 WiFi wifi;
 CanBus canbus;
@@ -191,3 +205,4 @@ void wsTask(void * args) {
     }
 }
 
+#endif
