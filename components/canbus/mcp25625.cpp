@@ -155,35 +155,52 @@ void MCP25625::detachReceiveInterrupt() {
     ESP_ERROR_CHECK(err); 
 }
 
+// no need to demux the interrupt by inpecting CANINTF
+// since both receive flag interrupts are available
+// this was causing RX0OVR because the interrupt service time
+// (int to int clear) was taking 167 us. This was OK most of the
+// time, but the 1550 fid had only two bytes, in which case
+// the interrupt ocurred before the previous flag was cleared.
+// can shorten interrupt service by anothe 52 us by using
+// read rx buffer which clears the flag.
 bool MCP25625::receiveMessage(receive_msg_t * message) {
-    uint8_t canintf;
-    readRegister(reg::CANINTF, canintf);
-    if (canintf & 0x01) {
-        // alignment required by SPI DMA
-        struct alignas(32) buf {
-            // uint8_t ctrl;
-            uint8_t sidh;
-            uint8_t sidl;
-            uint8_t eid8;
-            uint8_t eid0;
-            uint8_t dlc;
-            uint8_t data[8];
-            uint8_t canstat;
-            uint8_t canctrl;
-        } buf;
-        readArrayRegisters(0x61, (uint8_t*)&buf, sizeof(buf));
+    // alignment required by SPI DMA
+    struct alignas(32) buf {
+        // uint8_t ctrl;
+        uint8_t sidh;
+        uint8_t sidl;
+        uint8_t eid8;
+        uint8_t eid0;
+        uint8_t dlc;
+        uint8_t data[8];
+        uint8_t canstat;
+        uint8_t canctrl;
+    } buf;
+    readArrayRegisters(0x61, (uint8_t*)&buf, sizeof(buf));
 
-        message->identifier = (buf.sidh << 3) | ((buf.sidl & 0xe0) >> 5);
-        message->rtr = (buf.sidl & 0x10) >> 4;
-        message->data_length_code = buf.dlc & 0x0f;
-        memcpy(message->data, buf.data, sizeof(buf.data));
+    message->identifier = (buf.sidh << 3) | ((buf.sidl & 0xe0) >> 5);
+    message->rtr = (buf.sidl & 0x10) >> 4;
+    message->data_length_code = buf.dlc & 0x0f;
+    memcpy(message->data, buf.data, sizeof(buf.data));
 
-        // do this here instead of ISR
-        bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
+    // do this here instead of ISR
+    // better yet use READ RX BUFFER command
+    bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
 
-        return true;
-    }
-    return false;
+    return true; // todo no longer needed
+}
+
+void MCP25625::setFilter() {
+// RXF filter value
+// RXM filter mask
+    uint16_t rxm = 0x07ff;
+    uint16_t sid = 0x60e;
+
+    writeRegister(reg::RXF0SIDH, (sid >> 3));
+    writeRegister(reg::RXF0SIDL, (sid & 0x07) << 5);
+    writeRegister(reg::RXM0SIDH, (rxm >> 3));
+    writeRegister(reg::RXM0SIDL, (rxm & 0x07) << 5);
+
 }
 
 void MCP25625::testReceiveStatus() {

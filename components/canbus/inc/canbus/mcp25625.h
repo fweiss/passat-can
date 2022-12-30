@@ -26,6 +26,7 @@ public:
     void detachReceiveInterrupt();
     void startReceiveMessages();
     bool receiveMessage(receive_msg_t * message);
+    void setFilter();
 
     void testRegisters();
     void testReceive();
@@ -56,9 +57,14 @@ private:
         RXB0D0 = 0x66,
         RXB0SIDH = 0x61,
         RXB0SIDL = 0x62,
+        RXF0SIDH = 0x00,
+        RXF0SIDL = 0x01,
+        RXM0SIDH = 0x20,
+        RXM0SIDL = 0x21,
     };
     void timing();
     static void receiveInterruptISR(void *arg);
+    void clearRX0OVR();
 };
 
 const size_t max = 8;
