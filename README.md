@@ -60,3 +60,10 @@ https://www.youtube.com/watch?v=J4XMFja1q0I
 
 Extensive desription of WS
 https://hpbn.co/websocket/
+
+Pretty good explanation of the ESP32 WiFi connect process
+https://esp32tutorials.com/esp32-esp-idf-connect-wifi-station-mode-example/
+
+A WiFi Manager for ESP32 built with PIO
+https://gitlab.com/prexus/wifi-manager
+

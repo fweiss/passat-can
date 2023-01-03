@@ -1,6 +1,3 @@
-#include "canbus.h"
-#include "mcp25625.h"
-
 #ifdef CAN_INTERFACE_ESP_TWAI
     #include "twai_app.h"
     #define CAN_CLASS TwaiApp

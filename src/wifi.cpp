@@ -122,7 +122,7 @@ void WiFi::event_handler(void* arg, esp_event_base_t event_base, int32_t event_i
         if (self->s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY) {
             esp_wifi_connect();
             self->s_retry_num++;
-            ESP_LOGI(TAG, "retry to connect to the AP");
+            ESP_LOGI(TAG, "retry to connect to the AP %d", self->s_retry_num);
         } else {
             xEventGroupSetBits(self->s_wifi_event_group, self->WIFI_FAIL_BIT);
         }
@@ -148,8 +148,7 @@ void WiFi::event_handler(void* arg, esp_event_base_t event_base, int32_t event_i
 }
 
 void WiFi::waitForConnection() {
-    /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
-     * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
+    ESP_LOGI(TAG, "waiting for connect or fail");
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
             WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
             pdFALSE,
