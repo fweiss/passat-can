@@ -83,14 +83,20 @@ void MCP25625::timing() {
     PRSEG prseg(6);
     PHSEG2 phseg2(5);
 
-    bitModifyRegister(reg::CNF1, sjw);
-    bitModifyRegister(reg::CNF1, brp);
-    bitModifyRegister(reg::CNF2, sam);
-    bitModifyRegister(reg::CNF2, phseg1);
-    bitModifyRegister(reg::CNF2, prseg);
-    bitModifyRegister(reg::CNF3, phseg2);
+    // bitModifyRegister(reg::CNF1, sjw);
+    // bitModifyRegister(reg::CNF1, brp);
+    // bitModifyRegister(reg::CNF2, sam);
+    // bitModifyRegister(reg::CNF2, phseg1);
+    // bitModifyRegister(reg::CNF2, prseg);
+    // bitModifyRegister(reg::CNF3, phseg2);
 
-    // writeRegister(reg::CNF1, 0x40);
+    // 20MHz_500kBPS
+    writeRegister(reg::CNF1, 0x40);
+    writeRegister(reg::CNF2, 0xf6);
+    writeRegister(reg::CNF3, 0x84);
+
+    // 20MHz_250kBPS
+    // writeRegister(reg::CNF1, 0x41);
     // writeRegister(reg::CNF2, 0xf6);
     // writeRegister(reg::CNF3, 0x84);
 }

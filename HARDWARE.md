@@ -111,5 +111,8 @@ https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/hw-reference/esp32
 ### ESP32-S3-DEVKITC1 v1.0
 WROOM N8R2
 
+## CAN hardware vendors
+https://kvaser.com
+
 
 
