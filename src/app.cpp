@@ -4,6 +4,7 @@
 #include "nvs_flash.h"
 #include "esp_spiffs.h"
 #include "esp_netif.h"
+#include "driver/gpio.h"
 
 static const char *TAG = "app";
 
@@ -17,11 +18,20 @@ void App::init() {
     initNvs(); // may need to store wifi credentials
     initSpiffs(); // used for web server
 
+    initWifiModeSwitch();
+
     err = esp_netif_init();
     ESP_ERROR_CHECK(err);
 
-    wifi.startStation();
-    // wifi.startAccessPoint();
+    switch (wifiMode) {
+        case STATION:
+            wifi.startStation();
+            break;
+        case ACCESS_POINT:
+            wifi.startAccessPoint();
+            vTaskDelay(5000 / portTICK_PERIOD_MS); // give remote device time to connect
+            break;
+    }
 
     // initHttpServer();
 
@@ -81,4 +91,16 @@ void App::startBridge() {
 void App::start() {
     httpServer.start();
     startBridge();
+}
+
+// connect the pin to ground for access point mode
+void App::initWifiModeSwitch() {
+    const gpio_num_t wifiModePin = GPIO_NUM_4;
+    gpio_pad_select_gpio(wifiModePin);
+    gpio_set_direction(wifiModePin, GPIO_MODE_INPUT);
+    gpio_pulldown_dis(wifiModePin);
+    gpio_pullup_en(wifiModePin);
+
+    int level = gpio_get_level(wifiModePin);
+    wifiMode = (level == 0 ? ACCESS_POINT : STATION);
 }

@@ -16,9 +16,15 @@ public:
     virtual void initBridge();
     virtual void startBridge();
 
+    enum WifiModes {
+        STATION,
+        ACCESS_POINT,
+    };
+
 protected:
     WiFi wifi;
     HttpServer httpServer;
+    WifiModes wifiMode;
 
 private:
     void initNvs();
@@ -26,4 +32,6 @@ private:
     void initWifi();
     void initHttpServer();
 
+private:
+    void initWifiModeSwitch();
 };
