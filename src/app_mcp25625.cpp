@@ -27,6 +27,7 @@ void AppMcp25625::startBridge() {
         // todo need a mutex
         mcp25625.testReceiveStatus();
     }
+    ESP_LOGI(TAG, "bridge shutting down");
     mcp25625.deinit();
 }
 // stopBridge

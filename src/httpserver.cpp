@@ -42,7 +42,15 @@ void HttpServer::start() {
     this->server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.lru_purge_enable = true;
+    
     config.uri_match_fn = httpd_uri_match_wildcard;
+    config.open_fn = [] (httpd_handle_t hd, int sockfd) -> esp_err_t {
+        ESP_LOGI(TAG, "websocket opened");
+        return ESP_OK;
+    }; // httpd_open_func_t 
+    config.close_fn = [] (httpd_handle_t hd, int sockfd) { // httpd_close_func_t
+        ESP_LOGI(TAG, "websocket closed");
+    }; 
 
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
     esp_err_t err;
