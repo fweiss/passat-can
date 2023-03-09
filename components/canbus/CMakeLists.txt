@@ -5,5 +5,5 @@ idf_component_register(
 		mcp25625.cpp
 
 	INCLUDE_DIRS inc inc/canbus
-    REQUIRES
+    REQUIRES driver
 )

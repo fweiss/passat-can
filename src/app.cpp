@@ -96,7 +96,7 @@ void App::start() {
 // connect the pin to ground for access point mode
 void App::initWifiModeSwitch() {
     const gpio_num_t wifiModePin = GPIO_NUM_4;
-    gpio_pad_select_gpio(wifiModePin);
+    esp_rom_gpio_pad_select_gpio(wifiModePin);
     gpio_set_direction(wifiModePin, GPIO_MODE_INPUT);
     gpio_pulldown_dis(wifiModePin);
     gpio_pullup_en(wifiModePin);

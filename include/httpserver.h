@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 #include <functional>
+#include <string>
 
 class HttpServer {
 public:
@@ -26,5 +27,5 @@ private:
     static esp_err_t handleWebSocket(httpd_req_t *req);
     static std::string getMimeType(std::string path);
     static void startPingTimer();
-    static void pingFunction(void*);
+    static void pingFunction(TimerHandle_t xTimer);
 };

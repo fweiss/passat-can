@@ -141,7 +141,7 @@ void MCP25625::attachReceiveInterrupt() {
     // gpio_install_isr_service
 
     const gpio_num_t interruptPin = GPIO_NUM_21;
-    gpio_pad_select_gpio(interruptPin);
+    esp_rom_gpio_pad_select_gpio(interruptPin);
     gpio_set_direction(interruptPin, GPIO_MODE_INPUT);
     gpio_pulldown_dis(interruptPin);
     gpio_pullup_en(interruptPin);

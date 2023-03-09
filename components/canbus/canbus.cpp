@@ -100,7 +100,7 @@ void CanBus::triggerRead() {
 
 std::string CanBus::messageToString(twai_message_t & message) {
     char buf[20];
-    snprintf(buf, sizeof(buf), "0x%x (%d)", message.identifier, message.identifier);
+    snprintf(buf, sizeof(buf), "0x%lx (%ld)", message.identifier, message.identifier);
     std::string out(buf);
     for (int i = 0; i < message.data_length_code; i++) {
         snprintf(buf, sizeof(buf), " %0x", message.data[i]);

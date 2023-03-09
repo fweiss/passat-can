@@ -231,7 +231,7 @@ void HttpServer::sendFile(httpd_req_t * req) {
 void HttpServer::startPingTimer() {
     TickType_t const timerPeriod= pdMS_TO_TICKS(1000);
     bool const autoReload = true;
-    TimerHandle_t handle = xTimerCreate("ping timer", timerPeriod, autoReload, nullptr, HttpServer::pingFunction);
+    TimerHandle_t handle = xTimerCreate("ping timer", timerPeriod, autoReload, nullptr, pingFunction);
     if (handle == NULL) {
         ESP_LOGE(TAG, "ping timer create error");
     } else {
@@ -242,7 +242,7 @@ void HttpServer::startPingTimer() {
     }
 }
 
-void HttpServer::pingFunction(void*) {
+void HttpServer::pingFunction(TimerHandle_t xTimer) {
     esp_err_t err;
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!

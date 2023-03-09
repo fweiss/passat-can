@@ -26,7 +26,7 @@ private:
     spi_device_handle_t spi;
 
     // needed to allow tasks to use spi_device_transmit
-    xSemaphoreHandle transactionMutex;
+    SemaphoreHandle_t transactionMutex;
     const TickType_t transactionMutexBlockTime = 50 /portTICK_PERIOD_MS;
 
     // the spi interface requires int16_t, but mcp uses only uint8_t
