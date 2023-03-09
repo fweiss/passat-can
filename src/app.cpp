@@ -1,4 +1,5 @@
 #include "app.h"
+#include "rgb.h"
 
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -37,6 +38,10 @@ void App::init() {
 
     ESP_LOGI(TAG, "init bridge");
     initBridge();
+
+    RGB rgb;
+    rgb.init();
+    rgb.setColor();
 }
 
 void App::initNvs() {
