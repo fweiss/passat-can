@@ -8,7 +8,7 @@ public:
 
     void init();
 
-    void setColor();
+    void setColor(uint8_t r, uint8_t g, uint8_t b);
 private:
     rmt_channel_handle_t led_chan = NULL;
     rmt_encoder_handle_t led_encoder_handle;

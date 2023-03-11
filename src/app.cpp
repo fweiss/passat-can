@@ -41,7 +41,7 @@ void App::init() {
 
     RGB rgb;
     rgb.init();
-    rgb.setColor();
+    rgb.setColor(100, 100, 0);
 }
 
 void App::initNvs() {

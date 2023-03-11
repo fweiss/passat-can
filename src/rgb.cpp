@@ -3,8 +3,7 @@
 RGB::RGB() {}
 
 void RGB::init() {
-
-    
+  
     const int RMT_LED_STRIP_RESOLUTION_HZ = 10000000; // 10MHz resolution, 1 tick = 0.1us (led strip needs a high resolution)
     const int RMT_LED_STRIP_GPIO_NUM      = 48;
 
@@ -14,23 +13,22 @@ void RGB::init() {
         .resolution_hz = RMT_LED_STRIP_RESOLUTION_HZ,
         .mem_block_symbols = 64, // increase the block size can make the LED less flickering
         .trans_queue_depth = 4, // set the number of transactions that can be pending in the background
-        // .flags.invert_out = false,
-        // .flags.with_dma = false,
-        // .flags.invert_out = false,
+        .flags{},  // none for built-in RGB LED
     };
     ESP_ERROR_CHECK(rmt_new_tx_channel(&tx_chan_config, &led_chan));
 
+    const float microsecondsPerTick = tx_chan_config.resolution_hz / 1000000;
     rmt_bytes_encoder_config_t encoder_config = {
         .bit0 = {
-            .duration0 = static_cast<unsigned int>(0.3 * tx_chan_config.resolution_hz / 1000000), // T0H=0.3us
+            .duration0 = static_cast<unsigned int>(0.3 * microsecondsPerTick), // T0H=0.3us
             .level0 = 1,
-            .duration1 = static_cast<unsigned int>(0.9 * tx_chan_config.resolution_hz / 1000000), // T0L=0.9us
+            .duration1 = static_cast<unsigned int>(0.9 * microsecondsPerTick), // T0L=0.9us
             .level1 = 0,
         },
         .bit1 = {
-            .duration0 = static_cast<unsigned int>(0.9 * tx_chan_config.resolution_hz / 1000000), // T1H=0.9us
+            .duration0 = static_cast<unsigned int>(0.9 * microsecondsPerTick), // T1H=0.9us
             .level0 = 1,
-            .duration1 = static_cast<unsigned int>(0.3 * tx_chan_config.resolution_hz / 1000000), // T1L=0.3us
+            .duration1 = static_cast<unsigned int>(0.3 * microsecondsPerTick), // T1L=0.3us
             .level1 = 0,
         },
         .flags = {
@@ -43,13 +41,12 @@ void RGB::init() {
 
 }
 
-void RGB::setColor() {
-    rmt_transmit_config_t tx_config = {
-        .loop_count = 0, // no transfer loop
-    };
+void RGB::setColor(uint8_t r, uint8_t g, uint8_t b) {
     // note WS2812 is GRB
-    led_pixels[0] = 100;
-    led_pixels[1] = 0; // r?
-    led_pixels[2] = 0;
+    led_pixels[0] = g;
+    led_pixels[1] = r;
+    led_pixels[2] = b;
+
+    rmt_transmit_config_t tx_config{};  // zeros
     ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder_handle, led_pixels, sizeof(led_pixels), &tx_config));
 }
