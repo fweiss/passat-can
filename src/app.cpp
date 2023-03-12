@@ -1,5 +1,5 @@
 #include "app.h"
-#include "rgb.h"
+#include "indicator.h"
 
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -15,6 +15,8 @@ App::~App() {}
 
 void App::init() {
     esp_err_t err;
+
+    Indicator::getInstance()->setColor(100, 0, 0);
 
     initNvs(); // may need to store wifi credentials
     initSpiffs(); // used for web server
@@ -39,9 +41,7 @@ void App::init() {
     ESP_LOGI(TAG, "init bridge");
     initBridge();
 
-    RGB rgb;
-    rgb.init();
-    rgb.setColor(100, 100, 0);
+    Indicator::getInstance()->setColor(100, 50, 0);
 }
 
 void App::initNvs() {
