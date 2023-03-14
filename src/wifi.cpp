@@ -93,7 +93,7 @@ void WiFi::startAccessPoint() {
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
-             "FIXME", "FIXME", 5);
+             staSSID, staPASS, 5);
 }
 
 void WiFi::registerAnyId() {
@@ -138,6 +138,7 @@ void WiFi::event_handler(void* arg, esp_event_base_t event_base, int32_t event_i
     if (event_id == WIFI_EVENT_AP_STACONNECTED) {
         wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
         ESP_LOGI(TAG, "station connected");
+        Indicator::getInstance()->postState(Indicator::stationConnected);
         // ESP_LOGI(TAG, "station %02x:%02x:%02x:%02x:%02x:%02x %s join, AID=%d",
         //          MAC2STR(event->mac), event->aid);
     } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {

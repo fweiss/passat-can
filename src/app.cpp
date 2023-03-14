@@ -40,8 +40,6 @@ void App::init() {
 
     ESP_LOGI(TAG, "init bridge");
     initBridge();
-
-    Indicator::getInstance()->setColor(100, 50, 0);
 }
 
 void App::initNvs() {

@@ -1,6 +1,24 @@
 # Passat CAN
 A little project to create a CAN Bus device that uses a web socket UI
 
+## Wifi usage
+runs in either station or access point mode.
+GPIO pin 4 is used to select
+- open = station
+- grounded = access point
+
+### Access point mode
+Access point mode is available so connection can be made without connecting to an existing Wifi network.
+The steps to connect in this mode are:
+- insert jumper to pull pin 4 low
+- power on or reset device
+- go to internet/wifi settings on the client device
+- select "wallop"
+- open a browser at ``192.168.4.1``
+
+
+The SSID is "wallop"
+
 ## Notes
 
 project created with platform io
