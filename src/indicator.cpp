@@ -1,6 +1,6 @@
 #include "indicator.h"
 
-Indicator::Indicator() : rgbLed() {
+Indicator::Indicator() : rgbLed(), state(IndicatorState::init) {
     rgbLed.init();
 
     red = 100;
@@ -29,23 +29,35 @@ void Indicator::setColor(const Color & color) {
 }
 
 void Indicator::postState(IndicatorState state) {
-    if (state == stationConnected) {
-        red = 0;
-        green = 100;
-        blue = 0;
-        return;
-    }
-    red = 0;
-    green = 0;
-    blue = 100;
+    // if (state == stationConnecting) {
+    //     red = 0;
+    //     green = 100;
+    //     blue = 0;
+    //     return;
+    // }
+    // red = 0;
+    // green = 0;
+    // blue = 100;
+    this->state = state;
 }
 
 void Indicator::task(void* args) {
     Indicator * self = static_cast<Indicator*>(args);
 
+    const Color wifiColor{0,0,100};
+
     while (true) {
-        self->blink(Color{100, 0, 0});
-        self->pulse(Color{0, 100, 0}, 3);
+        // self->blink(Color{100, 0, 0});
+        // self->pulse(Color{0, 100, 0}, 3);
+        if (self->state == accessPointConnecting) {
+            self->pulse(wifiColor, 2);
+        } else if (self->state == stationConnecting) {
+            self->pulse(wifiColor, 3);
+        } else if (self->state == wifiConnected) {
+            self->blink(wifiColor);
+        }
+        // idle
+        vTaskDelay(500 / portTICK_PERIOD_MS);
     }
 }
 

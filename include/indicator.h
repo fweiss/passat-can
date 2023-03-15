@@ -16,8 +16,10 @@
 class Indicator {
 public:
     enum IndicatorState {
+        init,
+        accessPointConnecting,
+        stationConnecting,
         wifiConnected,
-        stationConnected,
     };
     struct Color {
         uint8_t red;
@@ -41,6 +43,8 @@ private:
     static void task(void* args);
     void blink(const Color & color);
     void pulse(const Color & color, uint16_t times);
+
+    IndicatorState state;
 
     uint8_t red;
     uint8_t green;

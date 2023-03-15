@@ -36,6 +36,7 @@ void WiFi::startStation() {
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
+    Indicator::getInstance()->postState(Indicator::stationConnecting);
     ESP_ERROR_CHECK(esp_wifi_start() );
     ESP_LOGI(TAG, "wifi_init_sta finished.");
 
@@ -88,6 +89,8 @@ void WiFi::startAccessPoint() {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
+    Indicator::getInstance()->postState(Indicator::accessPointConnecting);
+
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
@@ -137,13 +140,11 @@ void WiFi::event_handler(void* arg, esp_event_base_t event_base, int32_t event_i
     // maybe should be separate handler?
     if (event_id == WIFI_EVENT_AP_STACONNECTED) {
         wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
-        ESP_LOGI(TAG, "station connected");
-        Indicator::getInstance()->postState(Indicator::stationConnected);
-        // ESP_LOGI(TAG, "station %02x:%02x:%02x:%02x:%02x:%02x %s join, AID=%d",
-        //          MAC2STR(event->mac), event->aid);
+        ESP_LOGI(TAG, "ap station connected");
+        Indicator::getInstance()->postState(Indicator::wifiConnected);
     } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
         wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
-        ESP_LOGI(TAG, "station disconnected");
+        ESP_LOGI(TAG, "ap station disconnected");
         // ESP_LOGI(TAG, "station %02x:%02x:%02x:%02x:%02x:%02x %s leave, AID=%d",
         //          MAC2STR(event->mac), event->aid);
     }
