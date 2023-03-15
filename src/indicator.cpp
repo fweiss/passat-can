@@ -45,6 +45,8 @@ void Indicator::task(void* args) {
     Indicator * self = static_cast<Indicator*>(args);
 
     const Color wifiColor{0,0,100};
+    // const Color canbusColor{100, 0, 0}; // trying to get orange, green too bright
+    const Color canbusColor{0, 10, 0};
 
     while (true) {
         // self->blink(Color{100, 0, 0});
@@ -56,8 +58,16 @@ void Indicator::task(void* args) {
         } else if (self->state == wifiConnected) {
             self->blink(wifiColor);
         }
-        // idle
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        
+        if (self->state == canbusHeartbeat) {
+            self->blink(canbusColor);
+        } else if (self->state == canbusNoHeartbeat) {
+            self->pulse(canbusColor, 2);
+        }
+
+        if (self->state == init) {
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+        }
     }
 }
 

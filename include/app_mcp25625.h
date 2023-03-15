@@ -15,5 +15,6 @@ private:
     MCP25625 mcp25625;
 
     static void webSocketSendTask(void * pvParameters);
-
+    TimerHandle_t heartbeatTimer;
+    static void heartbeatFunction(tmrTimerControl*);
 };

@@ -20,6 +20,8 @@ public:
         accessPointConnecting,
         stationConnecting,
         wifiConnected,
+        canbusHeartbeat,
+        canbusNoHeartbeat,
     };
     struct Color {
         uint8_t red;

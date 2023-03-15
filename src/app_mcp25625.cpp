@@ -1,4 +1,5 @@
 #include "app_mcp25625.h"
+#include "indicator.h"
 
 #include "esp_log.h"
 
@@ -10,6 +11,10 @@ AppMcp25625::~AppMcp25625() {}
 
 void AppMcp25625::initBridge() {
     mcp25625.init();
+
+    TickType_t const timerPeriod = pdMS_TO_TICKS(1000);
+    const bool autoReload = false;
+    heartbeatTimer = xTimerCreate("can heartbeat", timerPeriod, autoReload, nullptr, heartbeatFunction);
 }
 // deinitBridge
 
@@ -33,13 +38,18 @@ void AppMcp25625::startBridge() {
 // stopBridge
 
 void AppMcp25625::webSocketSendTask(void * pvParameters) {
+    AppMcp25625 * const self = static_cast<AppMcp25625*>(pvParameters);
+
     ESP_LOGI(TAG, "start websocket send task");
     const int payloadSize = 8;
-    AppMcp25625 * self = static_cast<AppMcp25625*>(pvParameters);
 
     receive_msg_t message;
     while (true) {
         if (xQueueReceive(self->mcp25625.receiveMessageQueue, &message, portMAX_DELAY)) {
+            // fixme, timeout? check error
+            xTimerReset(self->heartbeatTimer, 10);
+            Indicator::getInstance()->postState(Indicator::canbusHeartbeat);
+
             if (self->httpServer.isWebsocketConnected()) {
                 static uint8_t data[payloadSize + 2];
                 data[0] = message.identifier & 0xff;
@@ -49,4 +59,8 @@ void AppMcp25625::webSocketSendTask(void * pvParameters) {
             }
         }
     }
+}
+
+void AppMcp25625::heartbeatFunction(tmrTimerControl*) {
+    Indicator::getInstance()->postState(Indicator::canbusNoHeartbeat);
 }
