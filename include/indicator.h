@@ -22,6 +22,8 @@ public:
         wifiConnected,
         canbusHeartbeat,
         canbusNoHeartbeat,
+        websocketNotConnected,
+        websocketConnected,
     };
     struct Color {
         uint8_t red;
@@ -53,9 +55,9 @@ private:
 
     IndicatorState state;
 
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
+    // uint8_t red;
+    // uint8_t green;
+    // uint8_t blue;
 
     const Color OFF{0,0,0};
     Channel channels[3];

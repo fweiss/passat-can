@@ -1,4 +1,5 @@
 #include "httpserver.h"
+#include "indicator.h"
 
 #include <string>
 #include <unordered_map>
@@ -46,10 +47,12 @@ void HttpServer::start() {
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.open_fn = [] (httpd_handle_t hd, int sockfd) -> esp_err_t {
         ESP_LOGI(TAG, "websocket opened");
+        Indicator::getInstance()->postState(Indicator::websocketConnected);
         return ESP_OK;
     }; // httpd_open_func_t 
     config.close_fn = [] (httpd_handle_t hd, int sockfd) { // httpd_close_func_t
         ESP_LOGI(TAG, "websocket closed");
+        Indicator::getInstance()->postState(Indicator::websocketNotConnected);
     }; 
 
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
@@ -64,6 +67,8 @@ void HttpServer::start() {
     // TODO check err
     err = httpd_register_uri_handler(server, &websocketOptions);
     err = httpd_register_uri_handler(server, &defaultOptions);
+
+    Indicator::getInstance()->postState(Indicator::websocketNotConnected);
 }
 
 // messy litle helper to get arround the const char uri[]
