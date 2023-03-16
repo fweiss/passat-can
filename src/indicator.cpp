@@ -1,11 +1,23 @@
 #include "indicator.h"
 
+#include "esp_log.h"
+
+const char * TAG = "indicator";
+
 Indicator::Indicator() : rgbLed(), state(IndicatorState::init) {
     rgbLed.init();
 
-    red = 100;
+    red = 0;
     green = 0;
-    blue = 0;
+    blue = 100;
+
+    for (Channel & channel : channels) {
+        channel.state = init;
+        channel.pulses = 0;
+    }
+    channels[0].color = Color{0,0,10}; // wifi
+    channels[1].color = Color{0,10,0}; // canbus
+    channels[2].color = Color{10,0,0}; // websocket
 
     xTaskCreate(task, "Indicator_Task", 4096, (void*)this, 10, &taskHandle);
 }
@@ -39,6 +51,29 @@ void Indicator::postState(IndicatorState state) {
     // green = 0;
     // blue = 100;
     this->state = state;
+
+    // ESP_LOGI(TAG, "post state %d", state);
+
+    switch (state) {
+        case wifiConnected:
+            channels[0].pulses = 1;
+            break;
+        case stationConnecting:
+            channels[0].pulses = 2;
+            break;
+        case accessPointConnecting:
+            channels[0].pulses = 3;
+            break;
+
+        case canbusHeartbeat:
+            channels[1].pulses = 1;
+            break;
+        case canbusNoHeartbeat:
+            channels[1].pulses = 2;
+            break;
+        case init:
+            break;
+    }
 }
 
 void Indicator::task(void* args) {
@@ -49,6 +84,17 @@ void Indicator::task(void* args) {
     const Color canbusColor{0, 10, 0};
 
     while (true) {
+        uint16_t pulses = 0;
+        for (Channel & channel : self->channels) {
+            self->pulse(channel.color, channel.pulses);
+            pulses += channel.pulses;
+        }
+        // to keep WDT from kicking
+        if (pulses == 0) {
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+        }
+      #if 0
+
         // self->blink(Color{100, 0, 0});
         // self->pulse(Color{0, 100, 0}, 3);
         if (self->state == accessPointConnecting) {
@@ -68,6 +114,7 @@ void Indicator::task(void* args) {
         if (self->state == init) {
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
+        #endif
     }
 }
 

@@ -110,7 +110,7 @@ https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/hw-reference/esp32
 
 ### ESP32-S3-DEVKITC1 v1.0
 WROOM N8R2
-SK68XXMINI-HS
+SK68XXMINI-HS green is too bright cannot get yellow or orange.
 
 ## CAN hardware vendors
 https://kvaser.com

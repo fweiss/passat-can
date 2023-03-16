@@ -16,7 +16,8 @@ App::~App() {}
 void App::init() {
     esp_err_t err;
 
-    Indicator::getInstance()->setColor(100, 0, 0);
+    // Indicator::getInstance()->setColor(100, 0, 0);
+    Indicator::getInstance()->postState(Indicator::init);
 
     initNvs(); // may need to store wifi credentials
     initSpiffs(); // used for web server
