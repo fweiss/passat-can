@@ -46,13 +46,17 @@ void HttpServer::start() {
     
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.open_fn = [] (httpd_handle_t hd, int sockfd) -> esp_err_t {
-        ESP_LOGI(TAG, "websocket opened");
-        Indicator::getInstance()->postState(Indicator::websocketConnected);
+        // cannot tell if this connection is web socket yet
+        // need to wait for web socket handshake in handleWebSocket()
+
         return ESP_OK;
     }; // httpd_open_func_t 
     config.close_fn = [] (httpd_handle_t hd, int sockfd) { // httpd_close_func_t
-        ESP_LOGI(TAG, "websocket closed");
-        Indicator::getInstance()->postState(Indicator::websocketNotConnected);
+        httpd_ws_client_info_t client_info = httpd_ws_get_fd_info(hd, sockfd);
+        if (client_info == HTTPD_WS_CLIENT_WEBSOCKET) {
+            ESP_LOGI(TAG, "websocket closed %d", sockfd);
+            Indicator::getInstance()->postState(Indicator::websocketNotConnected);
+        }
     }; 
 
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
@@ -113,7 +117,11 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
 
         // save socket descriptor for subsequent async sends
         socketFd = httpd_req_to_sockfd(req);
+
         ESP_LOGI(TAG, "saved socket fd %d", socketFd);
+
+        ESP_LOGI(TAG, "websocket opened %d", socketFd);
+        Indicator::getInstance()->postState(Indicator::websocketConnected);
 
         // startPingTimer();
 
