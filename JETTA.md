@@ -1,6 +1,6 @@
 see also jetta-can
 
-## emitted frames
+## dashboard emitted frames
 800,1056,1306,1312,1322,1490,1523,1569,1577,1579,1581,1831
 
 aggregate about 85/sec
