@@ -30,7 +30,7 @@ class App {
     
             let frame = this.frame = frames[fd]
             if (frame === undefined) {
-                frame = frames[fd] = new Frame(fd)
+                frame = frames[fd] = new FrameSummary(fd)
                 this.createFrameView(frame)
             }
             frame.event(payload)
@@ -63,12 +63,16 @@ class App {
     createFrameView(frame) {
         const tb = $('table#frames tbody')
         const tr = $('<tr>').appendTo(tb)
+
         $('<td>').appendTo(tr).text(frame.fd).addClass('code')
         const period = $('<td>').appendTo(tr).addClass('period')
+        const flags = $('<td>').appendTo(tr).addClass('flags')
         const payload = $('<td>').appendTo(tr).addClass('payload')
+
         $(frame).bind('update', (event, data) => {
             const target = event.currentTarget
             period.text(Math.round(target.period))
+            flags.text('Z')
             payload.text(array2hex(data))
         })
     }
@@ -119,7 +123,7 @@ class WSConnection {
         return map[readyState] || 'unknown'
     }
 }
-class Frame {
+class FrameSummary {
     constructor(fd) {
         this.fd = fd
         this.sampleStartTime = Date.now()
@@ -132,5 +136,12 @@ class Frame {
     }
     get period() {
         return (this.sampleLastTime - this.sampleStartTime) / this.counter
+    }
+    get flagsAsText() {
+        let text = ''
+        if (this.flags & 0x01) {
+            text += 'Z'
+        }
+        return text
     }
 }
