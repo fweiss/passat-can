@@ -70,7 +70,11 @@ private:
 const size_t max = 8;
 struct receive_msg_t {
     uint32_t identifier;
-    uint8_t rtr;
+    uint8_t rtrxxx;
+    struct {
+        uint8_t srr : 1;
+        uint8_t ide : 1;
+    } flags;
     uint8_t data_length_code;
     uint8_t data[max];
 };
@@ -95,4 +99,10 @@ struct PHSEG2 : Field<3, 0> { // CNF3
 };
 struct REQOP : Field<3, 5> { // CANCTRL
     REQOP(uint8_t value) : Field(value) {}
+};
+struct SRR : Field<1, 4> { // TXB0SIDL
+    SRR(uint8_t value) : Field(value) {}
+    static uint8_t of(uint8_t reg) {
+        return (reg >> 4) & 0x01;
+    }
 };

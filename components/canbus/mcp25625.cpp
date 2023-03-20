@@ -182,10 +182,13 @@ bool MCP25625::receiveMessage(receive_msg_t * message) {
         uint8_t canstat;
         uint8_t canctrl;
     } buf;
-    readArrayRegisters(0x61, (uint8_t*)&buf, sizeof(buf));
+    readArrayRegisters(RXB0SIDH, (uint8_t*)&buf, sizeof(buf));
 
     message->identifier = (buf.sidh << 3) | ((buf.sidl & 0xe0) >> 5);
-    message->rtr = (buf.sidl & 0x10) >> 4;
+    message->rtrxxx = (buf.sidl & 0x10) >> 4;
+    message->flags.ide = 0; // RXB0SIDL:3
+    message->flags.srr = SRR::of(buf.sidl); // RXB0SIDL:4
+    // rtr SIDL:6
     message->data_length_code = buf.dlc & 0x0f;
     memcpy(message->data, buf.data, sizeof(buf.data));
 

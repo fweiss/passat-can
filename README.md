@@ -85,3 +85,8 @@ https://esp32tutorials.com/esp32-esp-idf-connect-wifi-station-mode-example/
 A WiFi Manager for ESP32 built with PIO
 https://gitlab.com/prexus/wifi-manager
 
+Good guide for accessing VAG CAN from the OBDII port
+https://forum.macchina.cc/t/how-to-read-vw-can-bus/655
+
+Basics of VW CAN bus system
+http://www.volkspage.net/technik/ssp/ssp/SSP_238.pdf
