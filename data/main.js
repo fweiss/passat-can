@@ -13,28 +13,26 @@ class App {
         // frameModel
     }
     constructor() {
-        let count = 0
+        let totalFrames = 0
 
-        let wes = new WSConnection()
-        let frames = {}
+        let webSocket = new WSConnection()
+        let frameSummaries = {}
     
-        wes.onmessage = (data) => {
-            count++;
+        webSocket.onmessage = (data) => {
+            totalFrames++;
 
-            const littleEndian = true
-            const view = new DataView(data)
-            const fd = view.getUint16(0, littleEndian)
-            const payload = data.slice(2)
+            const frame = new Frame(data)
 
-            this.dispatchFrame(fd, payload)
+            this.dispatchFrame(frame)
     
-            let frame = this.frame = frames[fd]
-            if (frame === undefined) {
-                frame = frames[fd] = new FrameSummary(fd)
-                this.createFrameView(frame)
+            // find or create frame summary
+            const fd = frame.fd
+            let frameSummary = frameSummaries[fd]
+            if (frameSummary === undefined) {
+                frameSummary = frameSummaries[fd] = new FrameSummary(fd)
+                this.createFrameView(frameSummary)
             }
-            frame.event(payload)
-    
+            frameSummary.event(frame)   
         }
 
         
@@ -45,7 +43,7 @@ class App {
             // wes.send(rpm)
         })
         $('#send').click(event => {
-            wes.send(200)
+            webSocket.send(200)
         })
         $(this.summary).on('update', event => {
             const list = this.summary.ids.join(',')
@@ -54,26 +52,27 @@ class App {
     
         const sample = 1000 // ms
         setInterval(() => {
-            let rate = count / (sample / 1000)
-            count = 0
-            $('#rate').val(rate)
+            const sampledFrameRate = totalFrames / (sample / 1000)
+            totalFrames = 0
+            $('#rate').val(sampledFrameRate)
         }, sample)
     
     }
-    createFrameView(frame) {
+    createFrameView(frameSummary) {
         const tb = $('table#frames tbody')
         const tr = $('<tr>').appendTo(tb)
 
-        $('<td>').appendTo(tr).text(frame.fd).addClass('code')
+        $('<td>').appendTo(tr).text(frameSummary.fd).addClass('code')
         const period = $('<td>').appendTo(tr).addClass('period')
         const flags = $('<td>').appendTo(tr).addClass('flags')
         const payload = $('<td>').appendTo(tr).addClass('payload')
 
-        $(frame).bind('update', (event, data) => {
+        $(frameSummary).bind('update', (event, framesummary, frame) => {
             const target = event.currentTarget
-            period.text(Math.round(target.period))
-            flags.text('Z')
-            payload.text(array2hex(data))
+
+            period.text(Math.round(framesummary.period))
+            flags.text(frame.flagsAsText)
+            payload.text(array2hex(frame.data))
         })
     }
 }
@@ -123,19 +122,14 @@ class WSConnection {
         return map[readyState] || 'unknown'
     }
 }
-class FrameSummary {
-    constructor(fd) {
-        this.fd = fd
-        this.sampleStartTime = Date.now()
-        this.counter = 0
-    }
-    event(payload) {
-        this.counter += 1
-        this.sampleLastTime = Date.now()
-        $(this).trigger('update', payload)
-    }
-    get period() {
-        return (this.sampleLastTime - this.sampleStartTime) / this.counter
+class Frame {
+    // ByteArray
+    constructor(bytearray) {
+        const littleEndian = true
+        const view = new DataView(bytearray)
+        this.fd = view.getUint16(0, littleEndian)
+        this.flags = 1 //view.getUint8(2)
+        this.data = bytearray.slice(2)
     }
     get flagsAsText() {
         let text = ''
@@ -143,5 +137,20 @@ class FrameSummary {
             text += 'Z'
         }
         return text
+    }
+}
+class FrameSummary {
+    constructor(fd) {
+        this.fd = fd
+        this.sampleStartTime = Date.now()
+        this.counter = 0
+    }
+    event(framedata) {
+        this.counter += 1
+        this.sampleLastTime = Date.now()
+        $(this).trigger('update', [ this, framedata ])
+    }
+    get period() {
+        return (this.sampleLastTime - this.sampleStartTime) / this.counter
     }
 }
