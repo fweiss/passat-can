@@ -54,7 +54,8 @@ void AppMcp25625::webSocketSendTask(void * pvParameters) {
                 static uint8_t data[payloadSize + 2];
                 data[0] = message.identifier & 0xff;
                 data[1] = (message.identifier >> 8) & 0xff;
-                memcpy(&data[2], message.data, message.data_length_code);
+                data[2] = (message.flags.srr << 0) | (message.flags.ide << 1);
+                memcpy(&data[3], message.data, message.data_length_code);
                 self->httpServer.sendFrame(data, message.data_length_code + 2);
             }
         }

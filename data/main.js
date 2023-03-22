@@ -128,13 +128,18 @@ class Frame {
         const littleEndian = true
         const view = new DataView(bytearray)
         this.fd = view.getUint16(0, littleEndian)
-        this.flags = 1 //view.getUint8(2)
-        this.data = bytearray.slice(2)
+        this.flags = view.getUint8(2)
+        this.data = bytearray.slice(3)
     }
     get flagsAsText() {
+        const srrMask = 0x01
+        const ideMask = 0x02
         let text = ''
-        if (this.flags & 0x01) {
-            text += 'Z'
+        if (this.flags & srrMask) {
+            text += 'R'
+        }
+        if (this.flags & ideMask) {
+            text += 'E'
         }
         return text
     }

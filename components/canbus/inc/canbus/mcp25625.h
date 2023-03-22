@@ -106,3 +106,9 @@ struct SRR : Field<1, 4> { // TXB0SIDL
         return (reg >> 4) & 0x01;
     }
 };
+struct IDE : Field<1, 3> { // TXB0SIDL
+    IDE(uint8_t value) : Field(value) {}
+    static uint8_t of(uint8_t reg) {
+        return (reg >> 3) & 0x01;
+    }
+};
