@@ -127,9 +127,9 @@ class Frame {
     constructor(bytearray) {
         const littleEndian = true
         const view = new DataView(bytearray)
-        this.fd = view.getUint16(0, littleEndian)
-        this.flags = view.getUint8(2)
-        this.data = bytearray.slice(3)
+        this.fd = view.getUint32(0, littleEndian)
+        this.flags = view.getUint8(4)
+        this.data = bytearray.slice(5)
     }
     get flagsAsText() {
         const srrMask = 0x01

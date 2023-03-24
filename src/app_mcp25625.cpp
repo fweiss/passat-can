@@ -5,6 +5,9 @@
 
 static const char TAG[] = "app-mcp25625";
 
+//forward
+static void packLittleEndian(uint16_t identifier, uint8_t * const data);
+
 AppMcp25625::AppMcp25625() : mcp25625() {}
 
 AppMcp25625::~AppMcp25625() {}
@@ -51,12 +54,14 @@ void AppMcp25625::webSocketSendTask(void * pvParameters) {
             Indicator::getInstance()->postState(Indicator::canbusHeartbeat);
 
             if (self->httpServer.isWebsocketConnected()) {
-                static uint8_t data[payloadSize + 2];
-                data[0] = message.identifier & 0xff;
-                data[1] = (message.identifier >> 8) & 0xff;
-                data[2] = (message.flags.srr << 0) | (message.flags.ide << 1);
-                memcpy(&data[3], message.data, message.data_length_code);
-                self->httpServer.sendFrame(data, message.data_length_code + 2);
+                static uint8_t data[payloadSize + 5];
+                // data[0] = message.identifier & 0xff;
+                // data[1] = (message.identifier >> 8) & 0xff;
+                packLittleEndian(message.identifier, &data[0]);
+                data[4] = (message.flags.srr << 0) | (message.flags.ide << 1);
+                memcpy(&data[5], message.data, message.data_length_code);
+                const int length = message.data_length_code + 5;
+                self->httpServer.sendFrame(data, length);
             }
         }
     }
@@ -64,4 +69,11 @@ void AppMcp25625::webSocketSendTask(void * pvParameters) {
 
 void AppMcp25625::heartbeatFunction(tmrTimerControl*) {
     Indicator::getInstance()->postState(Indicator::canbusNoHeartbeat);
+}
+
+static void packLittleEndian(uint16_t identifier, uint8_t * const data) {
+    data[0] = identifier & 0xff;
+    data[1] = (identifier >> 8) & 0xff;
+    data[2] = (identifier >> 16) & 0xff;
+    data[3] = (identifier >> 24) & 0xff;
 }

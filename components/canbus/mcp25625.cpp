@@ -8,6 +8,9 @@
 
 static char const * const TAG = "mcp25625";
 
+// forward
+static uint32_t getIdentifier(uint8_t sidh, uint8_t sidl, uint8_t eid8, uint8_t eid0);
+
 MCP25625::MCP25625() {
     receiveISRQueue = xQueueCreate(10, sizeof(timestamp_t));
     receiveMessageQueue = xQueueCreate(20, sizeof(receive_msg_t));
@@ -184,9 +187,8 @@ bool MCP25625::receiveMessage(receive_msg_t * message) {
     } buf;
     readArrayRegisters(RXB0SIDH, (uint8_t*)&buf, sizeof(buf));
 
-    message->identifier = (buf.sidh << 3) | ((buf.sidl & 0xe0) >> 5);
-    message->rtrxxx = (buf.sidl & 0x10) >> 4;
-    message->flags.ide = 0; // RXB0SIDL:3
+    // message->identifier = (buf.sidh << 3) | ((buf.sidl & 0xe0) >> 5);
+    message->identifier = getIdentifier(buf.sidh, buf.sidl, buf.eid8, buf.eid0);
     message->flags.srr = SRR::of(buf.sidl);
     message->flags.ide = IDE::of(buf.sidl);
     message->data_length_code = buf.dlc & 0x0f;
@@ -267,4 +269,27 @@ void MCP25625::receiveMessageTask(void * pvParameters) {
         }
     }
 
+}
+
+// in extended mode, the SID is the most significant 11 bits 
+// and the EID is the least significant 18 bits
+static uint32_t getIdentifier(uint8_t sidh, uint8_t sidl, uint8_t eid8, uint8_t eid0) {
+    const bool ide = (sidl & 0x04) >> 3;
+    return ide
+        ? 
+            ((sidh & 0xff) << 21) | 
+            ((sidl & 0xe0) << (18 - 5)) |
+            ((sidl & 0x03) << 16) |
+            ((eid8 & 0xff) << 8) |
+            ((eid0 & 0xff) << 0)
+        : 
+            ((sidh & 0xff) << 3) |
+            ((sidl & 0xe0) >> 5);
+        
+    // sid[10:3] SIDH
+    // SID[2:0] SIDH
+    // EID[17:16] SIDL
+    // EID[15:8] EID8
+    // EID[7:0] EID0
+    // 8+3+2+8+8 = 29 bits
 }

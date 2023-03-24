@@ -70,7 +70,6 @@ private:
 const size_t max = 8;
 struct receive_msg_t {
     uint32_t identifier;
-    uint8_t rtrxxx;
     struct {
         uint8_t srr : 1;
         uint8_t ide : 1;
