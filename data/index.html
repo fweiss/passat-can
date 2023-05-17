@@ -11,8 +11,31 @@
         </head>
     <body>
         <h1>Passat CAN</h1>
-        <button id="request">Request CAN Frame</button>
-        <input id="frame" type="text" size="64">
-        <input id="rate" type="text">
+        <div>
+            <input id="websocketstatus">
+            <label for="ws_status">Websocket status</label>
+        </div>
+        <div>
+            <input id="rate" type="text">
+            <span>frames per second</span>
+        </div>
+        <div>
+            <input id="rpm" type="range" min="0" max="6000" value="0">
+        </div>
+        <div>
+            <button id="send">Send</button>
+        </div>
+        <table id="frames">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Period</th>
+                    <th>Flags</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
     </body>
 </html>

@@ -1,3 +1,19 @@
+body {
+    margin: 0.5em;
+}
 input {
     font-family:'Courier New', Courier, monospace;
+}
+
+table#framet {
+    margin: 1em;
+}
+table td {
+    padding: 0.1em;
+    border: 1px solid black;
+    border-collapse: collapse;
+    font-family:'Courier New', Courier, monospace;
+}
+td.code, td.period {
+    text-align: right;
 }

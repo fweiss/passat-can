@@ -1,0 +1,1 @@
+XTAL 20 MHz

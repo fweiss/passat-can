@@ -1,4 +1,5 @@
 #include "httpserver.h"
+#include "indicator.h"
 
 #include <string>
 #include <unordered_map>
@@ -10,7 +11,10 @@
 
 char const * const TAG = "HTTP";
 
-int HttpServer::fd = 0;
+//maybe use singleton instead of statics
+httpd_handle_t HttpServer::server;
+int HttpServer::socketFd = 0;
+
 std::function<void(uint8_t * payload, size_t len)> HttpServer::onFrame = [] (uint8_t * payload, size_t len) {};
 
 HttpServer::HttpServer() {
@@ -20,7 +24,7 @@ void HttpServer::start() {
     static const httpd_uri_t defaultOptions = {
         .uri       = "/*",
         .method    = HTTP_GET,
-        .handler   = hello_get_handler,
+        .handler   = handleGetStatic,
         .user_ctx  = NULL,
         .is_websocket = false,
         .handle_ws_control_frames = NULL,
@@ -39,99 +43,70 @@ void HttpServer::start() {
     this->server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.lru_purge_enable = true;
+    
     config.uri_match_fn = httpd_uri_match_wildcard;
+    config.open_fn = [] (httpd_handle_t hd, int sockfd) -> esp_err_t {
+        // cannot tell if this connection is web socket yet
+        // need to wait for web socket handshake in handleWebSocket()
 
-    // Start the httpd server
+        return ESP_OK;
+    }; // httpd_open_func_t 
+    config.close_fn = [] (httpd_handle_t hd, int sockfd) { // httpd_close_func_t
+        httpd_ws_client_info_t client_info = httpd_ws_get_fd_info(hd, sockfd);
+        if (client_info == HTTPD_WS_CLIENT_WEBSOCKET) {
+            ESP_LOGI(TAG, "websocket closed %d", sockfd);
+            Indicator::getInstance()->postState(Indicator::websocketNotConnected);
+        }
+    }; 
+
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
-    if (httpd_start(&this->server, &config) == ESP_OK) {
-        // Set URI handlers
-        ESP_LOGI(TAG, "Registering URI handlers");
-        httpd_register_uri_handler(server, &websocketOptions);
-        httpd_register_uri_handler(server, &defaultOptions);
-        // httpd_register_uri_handler(server, &echo);
-        // httpd_register_uri_handler(server, &ctrl);
-        #if CONFIG_EXAMPLE_BASIC_AUTH
-        // httpd_register_basic_auth(server);
-        #endif
-        // return server;
+    esp_err_t err;
+    err = httpd_start(&this->server, &config);
+    if (err != ESP_OK) {
+        ESP_LOGI(TAG, "Error starting server!");
+        return;
     }
 
-    ESP_LOGI(TAG, "Error starting server!");
-    // return NULL;
+    ESP_LOGI(TAG, "Registering URI handlers");
+    // TODO check err
+    err = httpd_register_uri_handler(server, &websocketOptions);
+    err = httpd_register_uri_handler(server, &defaultOptions);
+
+    Indicator::getInstance()->postState(Indicator::websocketNotConnected);
 }
 
-esp_err_t HttpServer::hello_get_handler(httpd_req_t *req)
-{
-    char*  buf;
-    size_t buf_len;
-
-    /* Get header value string length and allocate memory for length + 1,
-     * extra byte for null termination */
-    buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;
-    if (buf_len > 1) {
-        buf = (char*)malloc(buf_len);
-        /* Copy null terminated value string into buffer */
-        if (httpd_req_get_hdr_value_str(req, "Host", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Host: %s", buf);
-        }
-        free(buf);
+// messy litle helper to get arround the const char uri[]
+// in httpd_req_t
+// wrapping with extern "C" so that uri can be initialized with a string
+// note that the return is copy-by-value, so no pointer issues
+#ifdef __cplusplus
+    extern "C"
+    {
+#endif
+static httpd_req_t indexRequest(httpd_req_t * req) {
+    httpd_req_t index {
+        .handle = req->handle,
+        .method = req->method,
+        .uri = {'/', 'i', 'n', 'd', 'e', 'x', '.', 'h', 't', 'm', 'l'}, // "/index.html",
+        .content_len = req->content_len,
+        .aux = req->aux,
+        .user_ctx = req->user_ctx,
+        .sess_ctx = req->sess_ctx,
+        .free_ctx = req->free_ctx,
+        .ignore_sess_ctx_changes = req->ignore_sess_ctx_changes,
+    };
+    return index;
+}
+#ifdef __cplusplus
     }
+#endif
 
-    buf_len = httpd_req_get_hdr_value_len(req, "Test-Header-2") + 1;
-    if (buf_len > 1) {
-        buf = (char*)malloc(buf_len);
-        if (httpd_req_get_hdr_value_str(req, "Test-Header-2", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Test-Header-2: %s", buf);
-        }
-        free(buf);
-    }
-
-    buf_len = httpd_req_get_hdr_value_len(req, "Test-Header-1") + 1;
-    if (buf_len > 1) {
-        buf = (char*)malloc(buf_len);
-        if (httpd_req_get_hdr_value_str(req, "Test-Header-1", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Test-Header-1: %s", buf);
-        }
-        free(buf);
-    }
-
-    /* Read URL query string length and allocate memory for length + 1,
-     * extra byte for null termination */
-    buf_len = httpd_req_get_url_query_len(req) + 1;
-    if (buf_len > 1) {
-        buf = (char*)malloc(buf_len);
-        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found URL query => %s", buf);
-            char param[32];
-            /* Get value of expected key from query string */
-            if (httpd_query_key_value(buf, "query1", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query1=%s", param);
-            }
-            if (httpd_query_key_value(buf, "query3", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query3=%s", param);
-            }
-            if (httpd_query_key_value(buf, "query2", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query2=%s", param);
-            }
-        }
-        free(buf);
-    }
-
-    /* Set some custom headers */
-    httpd_resp_set_hdr(req, "Custom-Header-1", "Custom-Value-1");
-    httpd_resp_set_hdr(req, "Custom-Header-2", "Custom-Value-2");
-
-    /* Send response with custom headers and body set as the
-     * string passed in user context*/
-    // const char* resp_str = (const char*) req->user_ctx;
-    // httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
-
-    sendFile(req);
-
-    /* After sending the HTTP response the old HTTP request
-     * headers are lost. Check if HTTP request headers can be read now. */
-    if (httpd_req_get_hdr_value_len(req, "Host") == 0) {
-        ESP_LOGI(TAG, "Request headers lost");
+esp_err_t HttpServer::handleGetStatic(httpd_req_t *req) {
+    if (strcmp(req->uri, "/") == 0) {
+       httpd_req_t x = indexRequest(req);
+       sendFile(&x);
+    } else {
+        sendFile(req);
     }
     return ESP_OK;
 }
@@ -139,30 +114,33 @@ esp_err_t HttpServer::hello_get_handler(httpd_req_t *req)
 esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
     if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "websocket handshake");
+
+        // save socket descriptor for subsequent async sends
+        socketFd = httpd_req_to_sockfd(req);
+
+        ESP_LOGI(TAG, "saved socket fd %d", socketFd);
+
+        ESP_LOGI(TAG, "websocket opened %d", socketFd);
+        Indicator::getInstance()->postState(Indicator::websocketConnected);
+
+        // startPingTimer();
+
         return ESP_OK;
     }
 
-    // save socket descriptor for subsequent async sends
-    fd = httpd_req_to_sockfd(req);
-    ESP_LOGI(TAG, "saved fd %d", fd);
-
     uint8_t buf[120];
     httpd_ws_frame_t ws_frame;
-    ws_frame.type = HTTPD_WS_TYPE_TEXT;
+    ws_frame.type = HTTPD_WS_TYPE_BINARY;
     ws_frame.payload = buf;
     ws_frame.len = 0;
 
-    httpd_ws_recv_frame(req, &ws_frame, sizeof(buf) - 1);
+    esp_err_t err = httpd_ws_recv_frame(req, &ws_frame, sizeof(buf) - 1);
     if (ws_frame.len < sizeof(buf)) {
-        buf[ws_frame.len] = 0;
+        buf[ws_frame.len] = 0; // was for string
     }
-    ESP_LOGI(TAG, "received web socket frame: %s", ws_frame.payload);
+    ESP_LOGI(TAG, "received web socket frame: len:%d type:%d final:%d payload[0]:%x", ws_frame.len, ws_frame.type, ws_frame.final, ws_frame.payload[0]);
     onFrame(ws_frame.payload, ws_frame.len);
 
-    // esp_err_t ret = httpd_ws_send_frame(req, &ws_frame);
-    // if (ret != ESP_OK) {
-    //     ESP_LOGE(TAG, "ws send failed %d", ret);
-    // }
     return ESP_OK;
 }
 
@@ -174,33 +152,67 @@ std::string HttpServer::getMimeType(std::string path) {
         { "css", "text/css" },
         { "ico", "image/ico" },
     };
+
     // or C++20 contains()
-    try {
-        return getMimeType.at(suffix);
-    }
-    catch (...) {
-        return std::string("text/plain");
-    }
+    
+    // C++11 exceptions
+    // try {
+    //     return getMimeType.at(suffix);
+    // }
+    // catch (...) {
+    //     return std::string("text/plain");
+    // }
+
+    // C++11 no exceptions
+    auto search = getMimeType.find(suffix);
+    return (search == getMimeType.end())
+        ? std::string("text/plain")
+        : search->second; 
 }
 
 void HttpServer::sendFrame(std::string data) {
     esp_err_t err;
-    httpd_ws_frame_t ws_pkt = {
-        .final = true,
-        .fragmented = false, 
-        .type = HTTPD_WS_TYPE_TEXT,
-        .payload = (uint8_t *)data.c_str(),
-        .len = data.size(),
-    };    
+    // httpd_ws_frame_t ws_pkt = {
+    //     .final = true,
+    //     .fragmented = false, 
+    //     .type = HTTPD_WS_TYPE_BINARY, // was text
+    //     .payload = (uint8_t *)data.c_str(),
+    //     .len = data.size(),
+    // };
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
+    ws_pkt.final = true;
+    ws_pkt.fragmented = false;
+    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
+    ws_pkt.payload = (uint8_t *)data.c_str();
+    ws_pkt.len = data.size();
+
     // async does not require the httpd_req_t
-    err = httpd_ws_send_frame_async(server, fd, &ws_pkt);
+    err = httpd_ws_send_frame_async(server, socketFd, &ws_pkt);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "error enqueuing frame 0x%x %d", err, fd);
+        ESP_LOGE(TAG, "error enqueuing frame 0x%x %d", err, socketFd);
     }
 }
 
+void HttpServer::sendFrame(uint8_t * data, size_t const length) {
+    esp_err_t err;
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
+    ws_pkt.final = true;
+    ws_pkt.fragmented = false;
+    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
+    ws_pkt.payload = data;
+    ws_pkt.len = length;
+
+    // async does not require the httpd_req_t
+    err = httpd_ws_send_frame_async(server, socketFd, &ws_pkt);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error enqueuing frame 0x%x %d", err, socketFd);
+    }    
+}
+
 bool HttpServer::isWebsocketConnected() {
-    return fd != 0;
+    return socketFd != 0;
 }
 
 void HttpServer::sendFile(httpd_req_t * req) {
@@ -212,13 +224,6 @@ void HttpServer::sendFile(httpd_req_t * req) {
 
     char buf[128];
     ssize_t buf_len;
-
-    // Check if destination file exists before renaming
-    // struct stat st;
-    // if (stat("/spiffs/foo.txt", &st) == 0) {
-    //     // Delete it if it exists
-    //     unlink("/spiffs/foo.txt");
-    // }
 
     ESP_LOGI(TAG, "opening file %s", filename.c_str());
     esp_err_t err = ESP_OK;
@@ -234,4 +239,37 @@ void HttpServer::sendFile(httpd_req_t * req) {
     ESP_LOGI(TAG, "sent file");
 
     fclose(fp);
+}
+
+void HttpServer::startPingTimer() {
+    TickType_t const timerPeriod= pdMS_TO_TICKS(1000);
+    bool const autoReload = true;
+    TimerHandle_t handle = xTimerCreate("ping timer", timerPeriod, autoReload, nullptr, pingFunction);
+    if (handle == NULL) {
+        ESP_LOGE(TAG, "ping timer create error");
+    } else {
+        BaseType_t err = xTimerStart(handle, 0);
+        if (err != pdPASS) {
+            ESP_LOGE(TAG, "start ping timer failed");
+        }
+    }
+}
+
+void HttpServer::pingFunction(TimerHandle_t xTimer) {
+    esp_err_t err;
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
+    ws_pkt.final = true;
+    ws_pkt.fragmented = false;
+    ws_pkt.type = HTTPD_WS_TYPE_PING;
+    ws_pkt.payload = nullptr;
+    ws_pkt.len = 0;
+
+    // async does not require the httpd_req_t
+    err = httpd_ws_send_frame_async(server, socketFd, &ws_pkt);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error enqueuing ping frame 0x%x", err);
+    } else {
+        ESP_LOGI(TAG, "sent ping frame");
+    }
 }

@@ -1,8 +1,9 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
-#include "driver/can.h"
+#include "driver/twai.h"
 
 class CanBus {
 public:
@@ -11,10 +12,10 @@ public:
 
     void init();
 
-    void onRecvFrame(std::function<void(can_message_t & message)>);
-    void sendFrame(can_message_t & message);
-    std::string messageToString(can_message_t & message);
+    void onRecvFrame(std::function<void(twai_message_t & message)>);
+    void sendFrame(twai_message_t & message);
+    std::string messageToString(twai_message_t & message);
     void triggerRead();
 private:
-    std::function<void(can_message_t & message)> recvCallback;
+    std::function<void(twai_message_t & message)> recvCallback;
 };
