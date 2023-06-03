@@ -12,3 +12,5 @@ get these frames:
 
 also got the following after some function
 1590 8891 E 02 01 00 00 00 00
+
+when getting VIN, 2024 has some ASCII bytes
