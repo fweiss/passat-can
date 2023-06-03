@@ -39,6 +39,21 @@ filter caps
 ## 12 v buck 5 V
 See digikey list
 
+## Espressif dev board
+### power
+is it OK to power off the buck converter and the USB-C at the same time?
+J1-VCC-5V
+     |
+UART +--|<-- VBUS (CP2102)
+USB  +--|<-- VBUSB NC?
+     +------ LDO  - VCC_3V3-ESP_3V3 (J1-ESP-3V3)
+
+## Bosch OBD 1100
+- STM32F091CCT6
+- LM393
+- NXP A1050 (high-speed CAN transceiver)
+- 8L05A (linear voltage regulator)
+- 25Q03213 (32 Mb seriasl NOR flash)
 ## MCP25625 click
 $24
 
