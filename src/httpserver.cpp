@@ -153,17 +153,7 @@ std::string HttpServer::getMimeType(std::string path) {
         { "ico", "image/ico" },
     };
 
-    // or C++20 contains()
-    
-    // C++11 exceptions
-    // try {
-    //     return getMimeType.at(suffix);
-    // }
-    // catch (...) {
-    //     return std::string("text/plain");
-    // }
-
-    // C++11 no exceptions
+    // C++11, or use C++20 contains()
     auto search = getMimeType.find(suffix);
     return (search == getMimeType.end())
         ? std::string("text/plain")
@@ -232,6 +222,7 @@ void HttpServer::sendFile(httpd_req_t * req) {
     if (fp == NULL) {
         ESP_LOGE(TAG, "open failed %d", (int)fp);
     }
+    
     do {
         buf_len = fread(&buf, 1, sizeof(buf), fp);
         err = httpd_resp_send_chunk(req, buf, buf_len);
