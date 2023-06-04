@@ -10,6 +10,14 @@
 
 char const * const TAG = "HTTP";
 
+const httpd_ws_frame_t default_ws_frame = {
+    .final = true,
+    .fragmented = false, 
+    .type = HTTPD_WS_TYPE_BINARY,
+    .payload = NULL,
+    .len = 0,
+};
+
 //maybe use singleton instead of statics
 httpd_handle_t HttpServer::server;
 int HttpServer::socketFd = 0;
@@ -103,8 +111,7 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
     }
 
     uint8_t buf[120];
-    httpd_ws_frame_t ws_frame;
-    ws_frame.type = HTTPD_WS_TYPE_BINARY;
+    httpd_ws_frame_t ws_frame = default_ws_frame;
     ws_frame.payload = buf;
     ws_frame.len = 0;
 
@@ -136,18 +143,7 @@ std::string HttpServer::getMimeType(std::string path) {
 
 void HttpServer::sendFrame(std::string data) {
     esp_err_t err;
-    // httpd_ws_frame_t ws_pkt = {
-    //     .final = true,
-    //     .fragmented = false, 
-    //     .type = HTTPD_WS_TYPE_BINARY, // was text
-    //     .payload = (uint8_t *)data.c_str(),
-    //     .len = data.size(),
-    // };
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
-    ws_pkt.final = true;
-    ws_pkt.fragmented = false;
-    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
+    httpd_ws_frame_t ws_pkt = default_ws_frame;
     ws_pkt.payload = (uint8_t *)data.c_str();
     ws_pkt.len = data.size();
 
@@ -160,11 +156,7 @@ void HttpServer::sendFrame(std::string data) {
 
 void HttpServer::sendFrame(uint8_t * data, size_t const length) {
     esp_err_t err;
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
-    ws_pkt.final = true;
-    ws_pkt.fragmented = false;
-    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
+    httpd_ws_frame_t ws_pkt = default_ws_frame;
     ws_pkt.payload = data;
     ws_pkt.len = length;
 
@@ -221,13 +213,8 @@ void HttpServer::startPingTimer() {
 
 void HttpServer::pingFunction(TimerHandle_t xTimer) {
     esp_err_t err;
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(ws_pkt)); // clear to avoid errant flags but we're setting all the fields!
-    ws_pkt.final = true;
-    ws_pkt.fragmented = false;
+    httpd_ws_frame_t ws_pkt = default_ws_frame;
     ws_pkt.type = HTTPD_WS_TYPE_PING;
-    ws_pkt.payload = nullptr;
-    ws_pkt.len = 0;
 
     // async does not require the httpd_req_t
     err = httpd_ws_send_frame_async(server, socketFd, &ws_pkt);
