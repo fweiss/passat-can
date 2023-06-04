@@ -15,9 +15,11 @@ public:
     void start();
     void sendFrame(std::string frame);
     void sendFrame(uint8_t * data, size_t const length);
-    // static?
-    static std::function<void(uint8_t * payload, size_t len)> onFrame;
     bool isWebsocketConnected();
+
+    // static because the callback it's called from has no this pointer
+    static std::function<void(uint8_t * payload, size_t len)> onFrame;
+    static std::function<void()> onConnectStatusChanged;
 private:
     static httpd_handle_t server;
     static int socketFd;

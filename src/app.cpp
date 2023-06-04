@@ -37,8 +37,6 @@ void App::init() {
             break;
     }
 
-    // initHttpServer();
-
     ESP_LOGI(TAG, "init bridge");
     initBridge();
 }
@@ -93,6 +91,12 @@ void App::startBridge() {
 }
 
 void App::start() {
+    HttpServer::onConnectStatusChanged = [this] () {
+        Indicator::IndicatorState connectedState = httpServer.isWebsocketConnected() 
+            ? Indicator::websocketConnected 
+            : Indicator::websocketNotConnected;
+        Indicator::getInstance()->postState(connectedState);
+    };
     httpServer.start();
     startBridge();
 }

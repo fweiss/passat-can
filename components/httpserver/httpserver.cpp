@@ -1,5 +1,4 @@
 #include "httpserver.h"
-#include "indicator.h"
 
 #include <string>
 #include <unordered_map>
@@ -16,6 +15,7 @@ httpd_handle_t HttpServer::server;
 int HttpServer::socketFd = 0;
 
 std::function<void(uint8_t * payload, size_t len)> HttpServer::onFrame = [] (uint8_t * payload, size_t len) {};
+std::function<void()> HttpServer::onConnectStatusChanged = [] () {};
 
 HttpServer::HttpServer() {
 }
@@ -34,7 +34,7 @@ void HttpServer::start() {
         .uri = "/ws",
         .method = HTTP_GET,
         .handler = handleWebSocket,
-        .user_ctx  = NULL,
+        .user_ctx  = (void*)this,
         .is_websocket = true,               // Mandatory: set to `true` to handler websocket protocol
         .handle_ws_control_frames = false,  // Optional: set to `true` for the handler to receive control packets, too
         .supported_subprotocol = NULL,
@@ -55,7 +55,7 @@ void HttpServer::start() {
         httpd_ws_client_info_t client_info = httpd_ws_get_fd_info(hd, sockfd);
         if (client_info == HTTPD_WS_CLIENT_WEBSOCKET) {
             ESP_LOGI(TAG, "websocket closed %d", sockfd);
-            Indicator::getInstance()->postState(Indicator::websocketNotConnected);
+            onConnectStatusChanged();
         }
     }; 
 
@@ -72,7 +72,7 @@ void HttpServer::start() {
     err = httpd_register_uri_handler(server, &websocketOptions);
     err = httpd_register_uri_handler(server, &defaultOptions);
 
-    Indicator::getInstance()->postState(Indicator::websocketNotConnected);
+    onConnectStatusChanged();
 }
 
 // messy litle helper to get arround the const char uri[]
@@ -112,6 +112,7 @@ esp_err_t HttpServer::handleGetStatic(httpd_req_t *req) {
 }
 
 esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
+    HttpServer* self = static_cast<HttpServer*>(req->user_ctx);
     if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "websocket handshake");
 
@@ -121,7 +122,7 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
         ESP_LOGI(TAG, "saved socket fd %d", socketFd);
 
         ESP_LOGI(TAG, "websocket opened %d", socketFd);
-        Indicator::getInstance()->postState(Indicator::websocketConnected);
+        self->onConnectStatusChanged();
 
         // startPingTimer();
 
