@@ -24,7 +24,7 @@ private:
     static httpd_handle_t server;
     static int socketFd;
 
-    static void sendFile(httpd_req_t * req);
+    static void sendFile(httpd_req_t * req, std::string uri);
     static esp_err_t handleGetStatic(httpd_req_t *req);
     static esp_err_t handleWebSocket(httpd_req_t *req);
     static std::string getMimeType(std::string path);
