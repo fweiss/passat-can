@@ -1,8 +1,49 @@
 # Passat CAN
 A little project to create a CAN Bus device that uses a web socket UI
 
+## Overview
+Hardware components:
+- ESP32-S3 devkit (other ESP32 boards will work)
+- MicroElekto MCP25624 click breakout board
+- currently assembled on 300 x 14 wireless breadboard
+- wireless LAN or smartphone
+> See HARDWARE.md for details
+
+Software components:
+- Visual Studio Code with PlatformIO extension
+- ESP libraries ``esp_http_server`` ``spiffs``
+> See DEVELOP.md for details
+
+## Wifi usage
+The firmware runs in either station or access point mode.
+The station mode requires a typlical WiFi infrastructure.
+The access point mode can be used in the car using just a smartphone.
+GPIO pin 4 is used to select either:
+- open = station
+- grounded = access point
+
+### Configure WiFi for station mode
+The WiFi SSID and WPA password are needed to connect.
+This information is not stored in the repository for security reasons.
+- remove jumper to pull pin 4 high
+- create a gitignored file ``src/local.h``
+- follow the instructions in ``include/wifi.h``
+- rebuild and flash the firmware
+
+### Access point mode
+Access point mode is available so connection can be made without connecting to an existing Wifi network.
+The steps to connect in this mode are:
+- insert jumper to pull pin 4 low
+- power on or reset device
+- go to internet/wifi settings on the client device
+- select "wallop"
+- open a browser at ``192.168.4.1``
+
+The SSID is "wallop"
+
 ## Status LED (ESP32-S3 devkit)
 The firmware uses this RGB LED to show status.
+This is useful for debugging.
 - blue single flash: wifi connected
 - blue double flash: wifi connectind station mode
 - blue triple flash: wifi connecting access point
@@ -14,24 +55,6 @@ The firmware uses this RGB LED to show status.
 In normal operation there will be single flashes of blue, white, green.
 
 Multiple flashes of a particular color indicate an issue with the respective service.
-
-## Wifi usage
-runs in either station or access point mode.
-GPIO pin 4 is used to select
-- open = station
-- grounded = access point
-
-### Access point mode
-Access point mode is available so connection can be made without connecting to an existing Wifi network.
-The steps to connect in this mode are:
-- insert jumper to pull pin 4 low
-- power on or reset device
-- go to internet/wifi settings on the client device
-- select "wallop"
-- open a browser at ``192.168.4.1``
-
-
-The SSID is "wallop"
 
 ## Notes
 
