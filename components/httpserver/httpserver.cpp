@@ -92,6 +92,48 @@ esp_err_t HttpServer::handleGetStatic(httpd_req_t *req) {
     return ESP_OK;
 }
 
+void HttpServer::sendFile(httpd_req_t * req, std::string uri) {
+    std::string filename = std::string("/spiffs") + uri;
+    std::string mimeType = getMimeType(uri);
+
+    (void)httpd_resp_set_type(req,  mimeType.c_str());
+
+    char buf[128];
+    ssize_t buf_len;
+
+    ESP_LOGI(TAG, "opening file %s", filename.c_str());
+    esp_err_t err = ESP_OK;
+    FILE * fp;
+    fp = fopen(filename.c_str(), "r");
+    if (fp == NULL) {
+        ESP_LOGE(TAG, "open failed %d", (int)fp);
+    }
+    
+    do {
+        buf_len = fread(&buf, 1, sizeof(buf), fp);
+        err = httpd_resp_send_chunk(req, buf, buf_len);
+    } while (buf_len > 0 && err == ESP_OK);
+    ESP_LOGI(TAG, "sent file");
+
+    fclose(fp);
+}
+
+std::string HttpServer::getMimeType(std::string path) {
+    std::string suffix = path.substr(path.find_last_of(".") + 1);
+    static std::unordered_map<std::string, std::string> getMimeType {
+        { "html", "text/html" },
+        { "js", "application/javascript; charset=utf-8" },
+        { "css", "text/css" },
+        { "ico", "image/ico" },
+    };
+
+    // C++11, or use C++20 contains()
+    auto search = getMimeType.find(suffix);
+    return (search == getMimeType.end())
+        ? std::string("text/plain")
+        : search->second; 
+}
+
 esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
     HttpServer* self = static_cast<HttpServer*>(req->user_ctx);
 
@@ -128,20 +170,8 @@ esp_err_t HttpServer::handleWebsocketConnect(httpd_req_t * req) {
     return ESP_OK;
 }
 
-std::string HttpServer::getMimeType(std::string path) {
-    std::string suffix = path.substr(path.find_last_of(".") + 1);
-    static std::unordered_map<std::string, std::string> getMimeType {
-        { "html", "text/html" },
-        { "js", "application/javascript; charset=utf-8" },
-        { "css", "text/css" },
-        { "ico", "image/ico" },
-    };
-
-    // C++11, or use C++20 contains()
-    auto search = getMimeType.find(suffix);
-    return (search == getMimeType.end())
-        ? std::string("text/plain")
-        : search->second; 
+bool HttpServer::isWebsocketConnected() {
+    return socketFd != 0;
 }
 
 void HttpServer::sendFrame(std::string data) {
@@ -168,36 +198,6 @@ void HttpServer::sendFrame(uint8_t * data, size_t const length) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "error enqueuing frame 0x%x %d", err, socketFd);
     }    
-}
-
-bool HttpServer::isWebsocketConnected() {
-    return socketFd != 0;
-}
-
-void HttpServer::sendFile(httpd_req_t * req, std::string uri) {
-    std::string filename = std::string("/spiffs") + uri;
-    std::string mimeType = getMimeType(uri);
-
-    (void)httpd_resp_set_type(req,  mimeType.c_str());
-
-    char buf[128];
-    ssize_t buf_len;
-
-    ESP_LOGI(TAG, "opening file %s", filename.c_str());
-    esp_err_t err = ESP_OK;
-    FILE * fp;
-    fp = fopen(filename.c_str(), "r");
-    if (fp == NULL) {
-        ESP_LOGE(TAG, "open failed %d", (int)fp);
-    }
-    
-    do {
-        buf_len = fread(&buf, 1, sizeof(buf), fp);
-        err = httpd_resp_send_chunk(req, buf, buf_len);
-    } while (buf_len > 0 && err == ESP_OK);
-    ESP_LOGI(TAG, "sent file");
-
-    fclose(fp);
 }
 
 void HttpServer::startPingTimer() {
