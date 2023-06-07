@@ -149,24 +149,40 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
         if (ws_frame.len < sizeof(buf)) {
             buf[ws_frame.len] = 0; // was for string
         }
-        ESP_LOGI(TAG, "received web socket frame: len:%d type:%d final:%d payload[0]:%x", ws_frame.len, ws_frame.type, ws_frame.final, ws_frame.payload[0]);
-        onFrame(ws_frame.payload, ws_frame.len);
+
+        // ESP_LOGI(TAG, "received web socket frame: len:%d type:%d final:%d payload[0]:%x", ws_frame.len, ws_frame.type, ws_frame.final, ws_frame.payload[0]);
+        switch (ws_frame.type) {
+            case HTTPD_WS_TYPE_CONTINUE:
+                break;
+            case HTTPD_WS_TYPE_TEXT:
+            case HTTPD_WS_TYPE_BINARY:
+                onFrame(ws_frame.payload, ws_frame.len);
+                break;
+            case HTTPD_WS_TYPE_CLOSE:
+                ESP_LOGI(TAG, "received close");
+                self->socketFd = 0;
+                // reset timeout
+                onConnectStatusChanged();
+                break;
+            case HTTPD_WS_TYPE_PING:
+                // ESP_LOGI(TAG, "received ping");
+                break;
+            case HTTPD_WS_TYPE_PONG:
+                // ESP_LOGI(TAG, "received pong");
+                // reset timeout
+                break;
+          }
 
         return ESP_OK;
     }
 }
 
 esp_err_t HttpServer::handleWebsocketConnect(httpd_req_t * req) {
-    ESP_LOGI(TAG, "websocket handshake");
-
     // save socket descriptor for subsequent async sends
     socketFd = httpd_req_to_sockfd(req);
-    ESP_LOGI(TAG, "websocket opened %d", socketFd);
-
+    ESP_LOGI(TAG, "websocket handshake opened %d", socketFd);
     onConnectStatusChanged();
-
     startPingTimer();
-
     return ESP_OK;
 }
 
@@ -226,6 +242,6 @@ void HttpServer::pingFunction(TimerHandle_t xTimer) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "error enqueuing ping frame 0x%x", err);
     } else {
-        ESP_LOGI(TAG, "sent ping frame");
+        // ESP_LOGI(TAG, "sent ping frame");
     }
 }
