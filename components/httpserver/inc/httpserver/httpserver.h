@@ -27,6 +27,7 @@ private:
     static void sendFile(httpd_req_t * req, std::string uri);
     static esp_err_t handleGetStatic(httpd_req_t *req);
     static esp_err_t handleWebSocket(httpd_req_t *req);
+    esp_err_t handleWebsocketConnect(httpd_req_t *req);
     static std::string getMimeType(std::string path);
     static void startPingTimer();
     static void pingFunction(TimerHandle_t xTimer);

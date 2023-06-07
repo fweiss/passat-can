@@ -44,7 +44,7 @@ void HttpServer::start() {
         .handler = handleWebSocket,
         .user_ctx  = (void*)this,
         .is_websocket = true,               // Mandatory: set to `true` to handler websocket protocol
-        .handle_ws_control_frames = false,  // Optional: set to `true` for the handler to receive control packets, too
+        .handle_ws_control_frames = true,   // Optional: set to `true` for the handler to receive ping/pong/close frames
         .supported_subprotocol = NULL,
     };
 
@@ -94,33 +94,36 @@ esp_err_t HttpServer::handleGetStatic(httpd_req_t *req) {
 
 esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
     HttpServer* self = static_cast<HttpServer*>(req->user_ctx);
+
     if (req->method == HTTP_GET) {
-        ESP_LOGI(TAG, "websocket handshake");
+        return self->handleWebsocketConnect(req);
+    } else {
+        uint8_t buf[120];
+        httpd_ws_frame_t ws_frame = default_ws_frame;
+        ws_frame.payload = buf;
+        ws_frame.len = 0;
 
-        // save socket descriptor for subsequent async sends
-        socketFd = httpd_req_to_sockfd(req);
-
-        ESP_LOGI(TAG, "saved socket fd %d", socketFd);
-
-        ESP_LOGI(TAG, "websocket opened %d", socketFd);
-        self->onConnectStatusChanged();
-
-        // startPingTimer();
+        esp_err_t err = httpd_ws_recv_frame(req, &ws_frame, sizeof(buf) - 1);
+        if (ws_frame.len < sizeof(buf)) {
+            buf[ws_frame.len] = 0; // was for string
+        }
+        ESP_LOGI(TAG, "received web socket frame: len:%d type:%d final:%d payload[0]:%x", ws_frame.len, ws_frame.type, ws_frame.final, ws_frame.payload[0]);
+        onFrame(ws_frame.payload, ws_frame.len);
 
         return ESP_OK;
     }
+}
 
-    uint8_t buf[120];
-    httpd_ws_frame_t ws_frame = default_ws_frame;
-    ws_frame.payload = buf;
-    ws_frame.len = 0;
+esp_err_t HttpServer::handleWebsocketConnect(httpd_req_t * req) {
+    ESP_LOGI(TAG, "websocket handshake");
 
-    esp_err_t err = httpd_ws_recv_frame(req, &ws_frame, sizeof(buf) - 1);
-    if (ws_frame.len < sizeof(buf)) {
-        buf[ws_frame.len] = 0; // was for string
-    }
-    ESP_LOGI(TAG, "received web socket frame: len:%d type:%d final:%d payload[0]:%x", ws_frame.len, ws_frame.type, ws_frame.final, ws_frame.payload[0]);
-    onFrame(ws_frame.payload, ws_frame.len);
+    // save socket descriptor for subsequent async sends
+    socketFd = httpd_req_to_sockfd(req);
+    ESP_LOGI(TAG, "websocket opened %d", socketFd);
+
+    onConnectStatusChanged();
+
+    startPingTimer();
 
     return ESP_OK;
 }
@@ -215,6 +218,8 @@ void HttpServer::pingFunction(TimerHandle_t xTimer) {
     esp_err_t err;
     httpd_ws_frame_t ws_pkt = default_ws_frame;
     ws_pkt.type = HTTPD_WS_TYPE_PING;
+    // ws_pkt.payload = (uint8_t *)"ping";
+    // ws_pkt.len = 4;
 
     // async does not require the httpd_req_t
     err = httpd_ws_send_frame_async(server, socketFd, &ws_pkt);
