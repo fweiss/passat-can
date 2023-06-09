@@ -29,6 +29,14 @@ HttpServer::HttpServer() {
 }
 
 void HttpServer::start() {
+
+    TickType_t const timerPeriod= pdMS_TO_TICKS(1000);
+    bool const autoReload = true;
+    pingTimer = xTimerCreate("ping timer", timerPeriod, autoReload, (void*)this, pingFunction);
+    if (pingTimer == NULL) {
+        ESP_LOGE(TAG, "ping timer create error");
+    }
+
     static const httpd_uri_t defaultOptions = {
         .uri       = "/*",
         .method    = HTTP_GET,
@@ -152,7 +160,7 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
 
         // ESP_LOGI(TAG, "received web socket frame: len:%d type:%d final:%d payload[0]:%x", ws_frame.len, ws_frame.type, ws_frame.final, ws_frame.payload[0]);
         switch (ws_frame.type) {
-            case HTTPD_WS_TYPE_CONTINUE:
+            case HTTPD_WS_TYPE_CONTINUE: // not supported
                 break;
             case HTTPD_WS_TYPE_TEXT:
             case HTTPD_WS_TYPE_BINARY:
@@ -161,14 +169,14 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
             case HTTPD_WS_TYPE_CLOSE:
                 ESP_LOGI(TAG, "received close");
                 self->socketFd = 0;
-                // reset timeout
+                (void)xTimerStop(self->pingTimer, 0);
                 onConnectStatusChanged();
                 break;
             case HTTPD_WS_TYPE_PING:
                 // ESP_LOGI(TAG, "received ping");
                 break;
             case HTTPD_WS_TYPE_PONG:
-                // ESP_LOGI(TAG, "received pong");
+                ESP_LOGI(TAG, "received pong");
                 // reset timeout
                 break;
           }
@@ -182,7 +190,7 @@ esp_err_t HttpServer::handleWebsocketConnect(httpd_req_t * req) {
     socketFd = httpd_req_to_sockfd(req);
     ESP_LOGI(TAG, "websocket handshake opened %d", socketFd);
     onConnectStatusChanged();
-    startPingTimer();
+    (void)xTimerStart(pingTimer, 0);
     return ESP_OK;
 }
 
@@ -216,22 +224,12 @@ void HttpServer::sendFrame(uint8_t * data, size_t const length) {
     }    
 }
 
-void HttpServer::startPingTimer() {
-    TickType_t const timerPeriod= pdMS_TO_TICKS(1000);
-    bool const autoReload = true;
-    TimerHandle_t handle = xTimerCreate("ping timer", timerPeriod, autoReload, nullptr, pingFunction);
-    if (handle == NULL) {
-        ESP_LOGE(TAG, "ping timer create error");
-    } else {
-        BaseType_t err = xTimerStart(handle, 0);
-        if (err != pdPASS) {
-            ESP_LOGE(TAG, "start ping timer failed");
-        }
-    }
-}
-
 void HttpServer::pingFunction(TimerHandle_t xTimer) {
     esp_err_t err;
+
+    httpd_ws_client_info_t clientInfo = httpd_ws_get_fd_info(server, socketFd);
+    ESP_LOGI(TAG, "sent ping frame %d", clientInfo);
+
     httpd_ws_frame_t ws_pkt = default_ws_frame;
     ws_pkt.type = HTTPD_WS_TYPE_PING;
     // ws_pkt.payload = (uint8_t *)"ping";
