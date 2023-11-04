@@ -16,7 +16,7 @@ Software components:
 
 ## Wifi usage
 The firmware runs in either station or access point mode.
-The station mode requires a typlical WiFi infrastructure.
+The station mode requires a typical WiFi infrastructure.
 The access point mode can be used in the car using just a smartphone.
 GPIO pin 4 is used to select either:
 - open = station
@@ -53,8 +53,9 @@ This is useful for debugging.
 - green double flash: websocket not connected
 
 In normal operation there will be single flashes of blue, white, green.
-
 Multiple flashes of a particular color indicate an issue with the respective service.
+
+> Tip: green double flash - you need to open with a browser
 
 ## Notes
 
