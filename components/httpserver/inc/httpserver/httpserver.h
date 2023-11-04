@@ -33,4 +33,24 @@ private:
     esp_err_t handleWebsocketConnect(httpd_req_t *req);
     static std::string getMimeType(std::string path);
     static void pingFunction(TimerHandle_t xTimer);
+
+    class PingPong {
+    public:
+        PingPong();
+
+        void start();
+        void stop();
+        void sendPing();
+        void receivedPong();
+    private:
+        uint16_t pingInterval = 1000;
+        TimerHandle_t pingTimer;
+        static void pingFunction(TimerHandle_t xTimer);
+
+        uint16_t pendingPingCount;
+        const uint16_t pendingPingCountMax = 3;
+    };
+
+    PingPong pingPong;
+
 };
