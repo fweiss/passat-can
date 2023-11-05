@@ -1,5 +1,6 @@
 #include "mcp25625.h"
 
+#define LOG_LOCAL_LEVEL ESP_LOG_WARN
 #include "esp_log.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"

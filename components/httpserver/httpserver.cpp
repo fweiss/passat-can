@@ -167,17 +167,16 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
                 onFrame(ws_frame.payload, ws_frame.len);
                 break;
             case HTTPD_WS_TYPE_CLOSE:
-                ESP_LOGI(TAG, "received close");
+                ESP_LOGI(TAG, "received websocket close frame");
                 self->socketFd = 0;
-                // (void)xTimerStop(self->pingTimer, 0);
                 self->pingPong.stop();
                 onConnectStatusChanged();
                 break;
             case HTTPD_WS_TYPE_PING:
-                // ESP_LOGI(TAG, "received ping");
+                // ESP_LOGI(TAG, "received websocket ping frame");
                 break;
             case HTTPD_WS_TYPE_PONG:
-                ESP_LOGI(TAG, "received pong");
+                ESP_LOGI(TAG, "received websocket pong frame");
                 self->pingPong.receivedPong();
                 break;
           }
@@ -251,7 +250,8 @@ void HttpServer::pingFunction(TimerHandle_t xTimer) {
 HttpServer::PingPong::PingPong() {
     // todo maybe allocate statically
     // using pvTimerID to refer to this
-    pingTimer = xTimerCreate("pingPongTimer", pdMS_TO_TICKS(1000), pdTRUE, (void *)this, pingFunction);
+    const TickType_t timerPeriodMs = 2000;
+    pingTimer = xTimerCreate("pingPongTimer", pdMS_TO_TICKS(timerPeriodMs), pdTRUE, (void *)this, pingFunction);
 }
 
 void HttpServer::PingPong::start() {
@@ -265,17 +265,18 @@ void HttpServer::PingPong::stop() {
 
 void HttpServer::PingPong::pingFunction(TimerHandle_t xTimer) {
     HttpServer::PingPong * self = (HttpServer::PingPong *)pvTimerGetTimerID(xTimer);
+
     self->sendPing();
-    esp_err_t err;
 
     httpd_ws_client_info_t clientInfo = httpd_ws_get_fd_info(server, socketFd);
-    ESP_LOGI(TAG, "sent ping frame %d", clientInfo);
+    ESP_LOGI(TAG, "ping fd info: %d", clientInfo);
 
     httpd_ws_frame_t ws_pkt = default_ws_frame;
     ws_pkt.type = HTTPD_WS_TYPE_PING;
     // ws_pkt.payload = (uint8_t *)"ping";
     // ws_pkt.len = 4;
 
+    esp_err_t err;
     err = httpd_ws_send_frame_async(server, socketFd, &ws_pkt);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "error enqueuing ping frame 0x%x", err);
@@ -285,7 +286,7 @@ void HttpServer::PingPong::pingFunction(TimerHandle_t xTimer) {
 }
 
 void HttpServer::PingPong::sendPing() {
-    ESP_LOGI(TAG, "sent ping frame: %d", pendingPingCount);
+    ESP_LOGI(TAG, "ping pending: %d", pendingPingCount);
     pendingPingCount += 1;
     if (pendingPingCount > pendingPingCountMax) {
         // disconnect
@@ -293,7 +294,7 @@ void HttpServer::PingPong::sendPing() {
 }
 
 void HttpServer::PingPong::receivedPong() {
-    ESP_LOGI(TAG, "received pong: %d", pendingPingCount);
+    ESP_LOGI(TAG, "pong pending: %d", pendingPingCount);
     if (pendingPingCount > 0) { // prevent underflow
         pendingPingCount -= 1;
     }
