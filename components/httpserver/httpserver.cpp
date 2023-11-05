@@ -171,7 +171,7 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
                 self->socketFd = 0;
                 self->pingPong.stop();
                 onConnectStatusChanged();
-                break;
+                return ESP_FAIL;
             case HTTPD_WS_TYPE_PING:
                 // ESP_LOGI(TAG, "received websocket ping frame");
                 break;
@@ -268,8 +268,9 @@ void HttpServer::PingPong::pingFunction(TimerHandle_t xTimer) {
 
     self->sendPing();
 
-    httpd_ws_client_info_t clientInfo = httpd_ws_get_fd_info(server, socketFd);
-    ESP_LOGI(TAG, "ping fd info: %d", clientInfo);
+    // what type of fd: invalid, http, websocket
+    // httpd_ws_client_info_t clientInfo = httpd_ws_get_fd_info(server, socketFd);
+    // ESP_LOGI(TAG, "ping fd info: %d", clientInfo);
 
     httpd_ws_frame_t ws_pkt = default_ws_frame;
     ws_pkt.type = HTTPD_WS_TYPE_PING;
