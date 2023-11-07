@@ -47,10 +47,10 @@ This is useful for debugging.
 - blue single flash: wifi connected
 - blue double flash: wifi connectind station mode
 - blue triple flash: wifi connecting access point
-- white single flash: canbus heartbeat
-- white double flash: canbus no heartbeat
-- green single flash: websocket connected
-- green double flash: websocket not connected
+- green single flash: canbus heartbeat
+- green double flash: canbus no heartbeat
+- white single flash: websocket connected
+- white double flash: websocket not connected
 
 In normal operation there will be single flashes of blue, white, green.
 Multiple flashes of a particular color indicate an issue with the respective service.
