@@ -79,24 +79,11 @@ class App {
 
 class WSConnection {
     constructor() {
-        const websocketstatus = $('#websocketstatus')
-        this.wes = new WebSocket('ws://' + window.location.host + '/ws')
-        this.wes.binaryType = 'arraybuffer'
-
-        this.wes.onopen = (event) => {
-            console.log('websocket opened')
-            websocketstatus.val(this.statusString(this.wes.readyState))
-        }
-        this.wes.onclose = (event) => {
-            console.log('websocket closed')
-        }
-        this.wes.onerror = (event) => {
-            console.log('websocket error')
-        }
         this.onMessage = () => {}
-        this.wes.onmessage = (event) => {
-            this.onmessage(event.data)
-        }
+        this.url = 'ws://' + window.location.host + '/ws'
+        this.reconnect()
+
+        const websocketstatus = $('#websocketstatus')
         setInterval(() => {
             // console.log('websocket readystate: ' + this.statusString(this.wes.readyState))
             websocketstatus.val(this.statusString(this.wes.readyState))
@@ -104,6 +91,34 @@ class WSConnection {
     }
     init() {
 
+    }
+    reconnect() {
+        try {
+            this.wes = new WebSocket(this.url)
+            clearInterval(this.reconnectInterval)
+            this.wes.binaryType = 'arraybuffer'
+
+            this.wes.onopen = (event) => {
+                console.log('websocket opened')
+                const websocketstatus = $('#websocketstatus')
+                websocketstatus.val(this.statusString(this.wes.readyState))
+            }
+            this.wes.onclose = (event) => {
+                console.log('websocket closed')
+                this.reconnectInterval = setInterval(() => {
+                    this.reconnect()
+                }, 1000)        
+            }
+            this.wes.onerror = (event) => {
+                console.log('websocket error')
+            }
+            this.wes.onmessage = (event) => {
+                this.onmessage(event.data)
+            }
+        }
+        catch (err) {
+            console.log('websocket connect error: ' + err)
+        }
     }
     send(rpm) {
         const frame = new ArrayBuffer(10)
