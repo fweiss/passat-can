@@ -38,22 +38,22 @@ public:
 
     Indicator();
     virtual ~Indicator() {};
-
     static Indicator * getInstance();
 
     void postState(IndicatorState state);
 
 private:
-    void setColor(uint8_t red, uint8_t green, uint8_t blue);
-    void setColor(const Color & color);
-    RGB rgbLed;
     static Indicator * instance;
     TaskHandle_t taskHandle;
     static void task(void* args);
+
+    void setColor(uint8_t red, uint8_t green, uint8_t blue);
+    void setColor(const Color & color);
+    RGB rgbLed;
     void blink(const Color & color);
     void pulse(const Color & color, uint16_t times);
 
-    IndicatorState state;
+    // IndicatorState state;
 
     // uint8_t red;
     // uint8_t green;

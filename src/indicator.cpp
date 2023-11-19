@@ -2,7 +2,8 @@
 
 const char * TAG = "indicator";
 
-Indicator::Indicator() : rgbLed(), state(IndicatorState::init) {
+// Indicator::Indicator() : rgbLed(), state(IndicatorState::init) {
+Indicator::Indicator() : rgbLed() {
     rgbLed.init();
 
     for (Channel & channel : channels) {
@@ -35,7 +36,7 @@ void Indicator::setColor(const Color & color) {
 }
 
 void Indicator::postState(IndicatorState state) {
-    this->state = state;
+    // this->state = state;
 
     switch (state) {
         case wifiConnected:

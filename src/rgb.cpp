@@ -5,7 +5,7 @@ RGB::RGB() {}
 void RGB::init() {
   
     const int RMT_LED_STRIP_RESOLUTION_HZ = 10000000; // 10MHz resolution, 1 tick = 0.1us (led strip needs a high resolution)
-    const int RMT_LED_STRIP_GPIO_NUM      = 48;
+    const gpio_num_t RMT_LED_STRIP_GPIO_NUM      = GPIO_NUM_48;
 
     rmt_tx_channel_config_t tx_chan_config = {
         .gpio_num = RMT_LED_STRIP_GPIO_NUM,
@@ -20,15 +20,15 @@ void RGB::init() {
     const float microsecondsPerTick = tx_chan_config.resolution_hz / 1000000;
     rmt_bytes_encoder_config_t encoder_config = {
         .bit0 = {
-            .duration0 = static_cast<unsigned int>(0.3 * microsecondsPerTick), // T0H=0.3us
+            .duration0 = static_cast<uint16_t>(0.3 * microsecondsPerTick), // T0H=0.3us
             .level0 = 1,
-            .duration1 = static_cast<unsigned int>(0.9 * microsecondsPerTick), // T0L=0.9us
+            .duration1 = static_cast<uint16_t>(0.9 * microsecondsPerTick), // T0L=0.9us
             .level1 = 0,
         },
         .bit1 = {
-            .duration0 = static_cast<unsigned int>(0.9 * microsecondsPerTick), // T1H=0.9us
+            .duration0 = static_cast<uint16_t>(0.9 * microsecondsPerTick), // T1H=0.9us
             .level0 = 1,
-            .duration1 = static_cast<unsigned int>(0.3 * microsecondsPerTick), // T1L=0.3us
+            .duration1 = static_cast<uint16_t>(0.3 * microsecondsPerTick), // T1L=0.3us
             .level1 = 0,
         },
         .flags = {
