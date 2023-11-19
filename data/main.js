@@ -34,6 +34,10 @@ class App {
             }
             frameSummary.event(frame)   
         }
+        $(webSocket).bind('status', (event, status) => {
+            const statusString = webSocket.statusString(status)
+            $('#websocketstatus').val(statusString)
+        })
 
         
         // a bit tricky to get realtime changes
@@ -83,10 +87,8 @@ class WSConnection {
         this.url = 'ws://' + window.location.host + '/ws'
         this.reconnect()
 
-        const websocketstatus = $('#websocketstatus')
         setInterval(() => {
-            // console.log('websocket readystate: ' + this.statusString(this.wes.readyState))
-            websocketstatus.val(this.statusString(this.wes.readyState))
+            $(this).trigger('status', [ this.socket.readyState ])
         }, 1000)
     }
     init() {
@@ -94,25 +96,24 @@ class WSConnection {
     }
     reconnect() {
         try {
-            this.wes = new WebSocket(this.url)
+            this.socket = new WebSocket(this.url)
             clearInterval(this.reconnectInterval)
-            this.wes.binaryType = 'arraybuffer'
+            this.socket.binaryType = 'arraybuffer'
 
-            this.wes.onopen = (event) => {
+            this.socket.onopen = (event) => {
                 console.log('websocket opened')
-                const websocketstatus = $('#websocketstatus')
-                websocketstatus.val(this.statusString(this.wes.readyState))
+                 $(this).trigger('status', [ this.socket.readyState ])
             }
-            this.wes.onclose = (event) => {
+            this.socket.onclose = (event) => {
                 console.log('websocket closed')
                 this.reconnectInterval = setInterval(() => {
                     this.reconnect()
                 }, 1000)        
             }
-            this.wes.onerror = (event) => {
+            this.socket.onerror = (event) => {
                 console.log('websocket error')
             }
-            this.wes.onmessage = (event) => {
+            this.socket.onmessage = (event) => {
                 this.onmessage(event.data)
             }
         }
@@ -125,7 +126,7 @@ class WSConnection {
         const view = new DataView(frame)
         view.setUint16(0, 0x320, true)
         view.setUint16(3, 2000 * 100)
-        this.wes.send(frame)
+        this.socket.send(frame)
     }
     statusString(readyState) {
         const map = {

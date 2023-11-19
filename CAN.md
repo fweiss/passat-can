@@ -7,6 +7,8 @@ https://www.vector.com/us/en/know-how/protocols/sae-j1939/#c94570
 More in-depth info on J1939, PGN, SPN
 https://www.csselectronics.com/pages/j1939-explained-simple-intro-tutorial
 
+[How to query ECUs on VW](https://forum.macchina.cc/t/how-to-read-vw-can-bus/655)
+
 Fram a chatGPT query:
 - engine speed
 - from ECM
