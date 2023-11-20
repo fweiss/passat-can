@@ -13,8 +13,9 @@ public:
 
     virtual void start();
 
-    virtual void initBridge();
-    virtual void startBridge();
+    // override in the interface-specific subclass
+    virtual void initBridge() = 0;
+    virtual void startBridge() = 0;
 
     enum WifiModes {
         STATION,

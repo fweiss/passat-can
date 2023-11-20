@@ -38,7 +38,7 @@ void App::init() {
     }
 
     ESP_LOGI(TAG, "init bridge");
-    initBridge();
+    initBridge(); // pure virtual - see subclasses
 }
 
 void App::initNvs() {
@@ -76,20 +76,6 @@ void App::initSpiffs() {
     }
 }
 
-void App::initBridge() {
-    // this should be overridden to use either
-    // initTwai();
-    // initMcp25625();
-    // and wire up the WS events with the CAN bus events
-    // may also need some synchronization with
-    // wifi bringup
-    // WS connection
-}
-
-void App::startBridge() {
-    
-}
-
 void App::start() {
     HttpServer::onConnectStatusChanged = [this] () {
         Indicator::IndicatorState connectedState = httpServer.isWebsocketConnected() 
@@ -98,7 +84,7 @@ void App::start() {
         Indicator::getInstance()->postState(connectedState);
     };
     httpServer.start();
-    startBridge();
+    startBridge(); // pure virtual - see subclasses
 }
 
 // connect the pin to ground for access point mode
