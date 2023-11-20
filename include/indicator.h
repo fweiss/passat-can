@@ -44,21 +44,17 @@ public:
 
 private:
     static Indicator * instance;
-    TaskHandle_t taskHandle;
-    static void task(void* args);
 
-    void setColor(uint8_t red, uint8_t green, uint8_t blue);
-    void setColor(const Color & color);
+    TaskHandle_t taskHandle;
+    static void taskCode(void* args);
+
+    Channel channels[3];
+
     RGB rgbLed;
     void blink(const Color & color);
     void pulse(const Color & color, uint16_t times);
-
-    // IndicatorState state;
-
-    // uint8_t red;
-    // uint8_t green;
-    // uint8_t blue;
+    void setColor(uint8_t red, uint8_t green, uint8_t blue);
+    void setColor(const Color & color);
 
     const Color OFF{0,0,0};
-    Channel channels[3];
 };

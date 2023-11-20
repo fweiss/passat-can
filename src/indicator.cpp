@@ -2,7 +2,6 @@
 
 const char * TAG = "indicator";
 
-// Indicator::Indicator() : rgbLed(), state(IndicatorState::init) {
 Indicator::Indicator() : rgbLed() {
     rgbLed.init();
 
@@ -14,7 +13,7 @@ Indicator::Indicator() : rgbLed() {
     channels[1].color = Color{0,10,0}; // canbus
     channels[2].color = Color{10,10,10}; // websocket
 
-    xTaskCreate(task, "Indicator_Task", 4096, (void*)this, 10, &taskHandle);
+    xTaskCreate(taskCode, "Indicator_Task", 4096, (void*)this, 10, &taskHandle);
 }
 
 Indicator * Indicator::instance{nullptr};
@@ -68,12 +67,12 @@ void Indicator::postState(IndicatorState state) {
     }
 }
 
-void Indicator::task(void* args) {
+void Indicator::taskCode(void* args) {
     Indicator * self = static_cast<Indicator*>(args);
 
-    const Color wifiColor{0,0,100};
+    // const Color wifiColor{0,0,100};
     // const Color canbusColor{100, 0, 0}; // trying to get orange, green too bright
-    const Color canbusColor{0, 10, 0};
+    // const Color canbusColor{0, 10, 0};
 
     while (true) {
         uint16_t pulses = 0;
