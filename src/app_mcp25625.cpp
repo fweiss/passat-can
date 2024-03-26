@@ -6,7 +6,7 @@
 static const char TAG[] = "app-mcp25625";
 
 //forward
-static void packLittleEndian(uint16_t identifier, uint8_t * const data);
+static void packLittleEndian(uint32_t identifier, uint8_t * const data);
 
 AppMcp25625::AppMcp25625() : mcp25625() {}
 
@@ -71,7 +71,7 @@ void AppMcp25625::heartbeatFunction(tmrTimerControl*) {
     Indicator::getInstance()->postState(Indicator::canbusNoHeartbeat);
 }
 
-static void packLittleEndian(uint16_t identifier, uint8_t * const data) {
+static void packLittleEndian(uint32_t identifier, uint8_t * const data) {
     data[0] = identifier & 0xff;
     data[1] = (identifier >> 8) & 0xff;
     data[2] = (identifier >> 16) & 0xff;
