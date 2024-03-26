@@ -275,7 +275,7 @@ void MCP25625::receiveMessageTask(void * pvParameters) {
 // in extended mode, the SID is the most significant 11 bits 
 // and the EID is the least significant 18 bits
 static uint32_t getIdentifier(uint8_t sidh, uint8_t sidl, uint8_t eid8, uint8_t eid0) {
-    const bool ide = (sidl & 0x04) >> 3;
+    const bool ide = IDE::of(sidl);
     return ide
         ? 
             ((sidh & 0xff) << 21) | 
