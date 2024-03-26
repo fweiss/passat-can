@@ -66,7 +66,7 @@ class App {
         const tb = $('table#frames tbody')
         const tr = $('<tr>').appendTo(tb)
 
-        $('<td>').appendTo(tr).text(frameSummary.fd).addClass('code')
+        $('<td>').appendTo(tr).text(frameSummary.fd.toString(16)).addClass('code')
         const period = $('<td>').appendTo(tr).addClass('period')
         const flags = $('<td>').appendTo(tr).addClass('flags')
         const payload = $('<td>').appendTo(tr).addClass('payload')
