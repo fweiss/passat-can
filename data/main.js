@@ -66,14 +66,16 @@ class App {
         const tb = $('table#frames tbody')
         const tr = $('<tr>').appendTo(tb)
 
-        $('<td>').appendTo(tr).text(frameSummary.fd.toString(16)).addClass('code')
+        const count = $('<td>').appendTo(tr).addClass('count')
         const period = $('<td>').appendTo(tr).addClass('period')
+        $('<td>').appendTo(tr).text(frameSummary.fd.toString(16)).addClass('code')
         const flags = $('<td>').appendTo(tr).addClass('flags')
         const payload = $('<td>').appendTo(tr).addClass('payload')
 
         $(frameSummary).bind('update', (event, framesummary, frame) => {
             const target = event.currentTarget
 
+            count.text(framesummary.counter)
             period.text(Math.round(framesummary.period))
             flags.text(frame.flagsAsText)
             payload.text(array2hex(frame.data))
