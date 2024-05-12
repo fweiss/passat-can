@@ -10,6 +10,22 @@
 
 char const * const TAG = "HTTP";
 
+const bool pingPongLog = false;
+
+void PING_LOG(const char * tag, const char * fmt, ...) {
+    // ESP_LOGI(TAG, "pong pending: %d", pendingPingCount);
+
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+    printf("\n");
+
+    // if (pingPongLog) {
+    //     ESP_LOGI(tag, fmt, 0);
+    // }
+}
+
 const httpd_ws_frame_t default_ws_frame = {
     .final = true,
     .fragmented = false, 
@@ -176,7 +192,9 @@ esp_err_t HttpServer::handleWebSocket(httpd_req_t * req) {
                 // ESP_LOGI(TAG, "received websocket ping frame");
                 break;
             case HTTPD_WS_TYPE_PONG:
-                ESP_LOGI(TAG, "received websocket pong frame");
+                if (pingPongLog) {
+                    ESP_LOGI(TAG, "received websocket pong frame");
+                }
                 self->pingPong.receivedPong();
                 break;
           }
@@ -287,7 +305,9 @@ void HttpServer::PingPong::pingFunction(TimerHandle_t xTimer) {
 }
 
 void HttpServer::PingPong::sendPing() {
-    ESP_LOGI(TAG, "ping pending: %d", pendingPingCount);
+    if (pingPongLog) {
+        ESP_LOGI(TAG, "ping pending: %d", pendingPingCount);
+    }
     pendingPingCount += 1;
     if (pendingPingCount > pendingPingCountMax) {
         // disconnect
@@ -295,7 +315,9 @@ void HttpServer::PingPong::sendPing() {
 }
 
 void HttpServer::PingPong::receivedPong() {
-    ESP_LOGI(TAG, "pong pending: %d", pendingPingCount);
+    if (pingPongLog) {
+        ESP_LOGI(TAG, "pong pending: %d", pendingPingCount);
+    }
     if (pendingPingCount > 0) { // prevent underflow
         pendingPingCount -= 1;
     }
