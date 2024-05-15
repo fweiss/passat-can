@@ -27,6 +27,8 @@ public:
     void startReceiveMessages();
     bool receiveMessage(receive_msg_t * message);
     void setFilter();
+    
+    void sendMessage(uint8_t * payload, size_t len);
 
     void testRegisters();
     void testReceive();

@@ -22,5 +22,6 @@ void app_main() {
 
     app.init();
 
+    // should be run() since it doesn't normally return
     app.start();
 }

@@ -17,4 +17,6 @@ private:
     static void webSocketSendTask(void * pvParameters);
     TimerHandle_t heartbeatTimer;
     static void heartbeatFunction(tmrTimerControl*);
+    TimerHandle_t canStatusTimer;
+    static void canStatusFunction(TimerHandle_t xTimer);
 };

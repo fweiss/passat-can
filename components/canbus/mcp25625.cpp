@@ -202,6 +202,51 @@ bool MCP25625::receiveMessage(receive_msg_t * message) {
     return true; // todo no longer needed
 }
 
+void MCP25625::sendMessage(uint8_t * payload, size_t len) {
+    ESP_LOGI(TAG, "send message");
+    struct alignas(32) buf {
+        // uint8_t ctrl;
+        uint8_t sidh; // sid[10:3]
+        uint8_t sidl; // sid[2:0] ide eid[17:16]
+        uint8_t eid8; // eid[15:8]
+        uint8_t eid0; // eid[7:0]
+        uint8_t dlc;    // rtr dlc[3:0]
+        uint8_t data[8];
+        uint8_t canstat; // operationmode, interrupr flags
+        uint8_t canctrl;
+    } buf;
+    memset(&buf, 0, sizeof(buf));
+
+    uint16_t sid = 0x0391;
+    buf.sidh = (sid >> 3) & 0xff;
+    buf.sidl = ((sid & 0x07) << 5);
+    // unsigned char comfortUp[3] = { 85,128,0 }; //put windows up
+    buf.dlc = 3;
+    buf.data[0] = 85;
+    buf.data[1] = 128;
+    buf.data[2] = 0;
+
+    bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
+    // caninte merre
+    bitModifyRegister(reg::CANINTE, 0x54, 0x54); // TX0IE
+
+    // todo
+    // check if TXREQ is set
+    // check if TXB0CNTRL.TXREQ is set
+    // check if TXB0CNTRL.TXERR is set
+    // check if TXB0CNTRL.MLOA is set
+    // check if TXB0CNTRL.ABTF is set
+    // check if TXB0CNTRL.TXERR
+
+    // TXBxDn: TRANSMIT BUFFER x DATA BYTE n REGISTER
+    // (ADDRESS: 36h-3Dh, 46h-4Dh, 56h-5Dh)
+
+    writeArrayRegisters(TXB0SIDH, (uint8_t*)&buf, 8);
+
+    bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq
+
+}
+
 void MCP25625::setFilter() {
 // RXF filter value
 // RXM filter mask
@@ -233,7 +278,7 @@ void MCP25625::startReceiveMessages() {
     reset();
     timing();
     bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
-    bitModifyRegister(reg::CANINTE, 0x01, 0x01); // todo abstract
+    bitModifyRegister(reg::CANINTE, 0x01, 0x01); // RX0IE todo abstract
     REQOP normalMode(0); // get out of configuration mode
     bitModifyRegister(reg::CANCTRL, normalMode);
     bitModifyRegister(reg::EFLG, 0x40, 0x00);
@@ -241,6 +286,7 @@ void MCP25625::startReceiveMessages() {
 }
 
 // defer reading the message from the receive buffer
+// CANSTAT:ICOD to demultiplex interrupt
 void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
     timestamp_t timestamp = esp_log_timestamp();
     BaseType_t xHigherPriorityTaskWokenByPost = pdFALSE;

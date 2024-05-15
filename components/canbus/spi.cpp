@@ -180,3 +180,25 @@ void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count
 
     xSemaphoreGive(transactionMutex);
 }
+
+void SPI::writeArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count) {
+    if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
+        ESP_LOGE(TAG, "transactionMutex timeout");
+        return;
+    }
+
+    esp_err_t err;
+
+    spi_transaction_t transaction {};
+    transaction.cmd = cmd::WRITE;
+    transaction.addr = startAddress;
+    transaction.flags = 0;
+    transaction.tx_buffer = data;
+    transaction.length = 8 * count;
+    transaction.rxlength = 8 * count;
+
+    err = spi_device_transmit(spi, &transaction);
+    ESP_ERROR_CHECK(err);
+
+    xSemaphoreGive(transactionMutex);
+}

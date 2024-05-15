@@ -18,6 +18,7 @@ void AppMcp25625::initBridge() {
     TickType_t const timerPeriod = pdMS_TO_TICKS(1000);
     const bool autoReload = false;
     heartbeatTimer = xTimerCreate("can heartbeat", timerPeriod, autoReload, nullptr, heartbeatFunction);
+    canStatusTimer = xTimerCreate("can status", timerPeriod, true, (void*)this, canStatusFunction);
 }
 // deinitBridge
 
@@ -26,6 +27,14 @@ void AppMcp25625::startBridge() {
     // run the following on APP CPU
     // the logging blocks the core and the ISR task can't finish before the next CAN frame is ready
     xTaskCreatePinnedToCore(webSocketSendTask, "can isr task", 4096, (void*)this, 1, NULL, APP_CPU_NUM);
+
+    ESP_LOGI(TAG, "start can status timer %p", canStatusTimer);
+    xTimerStart(canStatusTimer, 10);
+
+    this->httpServer.onFrame = [this] (uint8_t * payload, size_t len) {
+        ESP_LOGI(TAG, "websocket frame received");
+        mcp25625.sendMessage(payload, len);
+    };
     
     mcp25625.attachReceiveInterrupt();
     // mcp25625.testReceive();
@@ -67,8 +76,35 @@ void AppMcp25625::webSocketSendTask(void * pvParameters) {
     }
 }
 
+struct frame {
+    uint32_t identifier;
+    uint8_t flags;
+    uint8_t data[8];
+};
+
 void AppMcp25625::heartbeatFunction(tmrTimerControl*) {
     Indicator::getInstance()->postState(Indicator::canbusNoHeartbeat);
+}
+
+void AppMcp25625::canStatusFunction(TimerHandle_t xTimer) {
+    AppMcp25625 *self = static_cast<AppMcp25625*>(pvTimerGetTimerID(xTimer));
+    if (self == nullptr) {
+        ESP_LOGE(TAG, "canStatusFunction: self is null");
+        return;
+    }
+    self->mcp25625.testReceiveStatus();
+
+    const size_t payloadSize = 8;
+    if (self->httpServer.isWebsocketConnected()) {
+        static uint8_t data[payloadSize + 5];
+        // data[0] = message.identifier & 0xff;
+        // data[1] = (message.identifier >> 8) & 0xff;
+        packLittleEndian(0x03fe, &data[0]);
+        data[5] = 0xaa;
+        // memcpy(&data[5], message.data, message.data_length_code);
+        const int length = 1 + 5;
+        self->httpServer.sendFrame(data, length);
+    }
 }
 
 static void packLittleEndian(uint32_t identifier, uint8_t * const data) {
