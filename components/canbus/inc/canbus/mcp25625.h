@@ -11,6 +11,15 @@
 struct receive_msg_t;
 typedef uint32_t timestamp_t;
 
+struct CanFrame {
+    uint32_t identifier;
+    uint8_t length;
+    uint8_t data[8];
+    bool extended;
+    bool remote;
+};
+
+
 class MCP25625 : public SPI {
 public:
     MCP25625();
@@ -28,7 +37,9 @@ public:
     bool receiveMessage(receive_msg_t * message);
     void setFilter();
     
-    void sendMessage(uint8_t * payload, size_t len);
+    void sendMessage(uint8_t * payload, size_t len); //deprecated
+    void transmitFrame(CanFrame &canFrame);
+
 
     void testRegisters();
     void testReceive();

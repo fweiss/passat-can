@@ -14,3 +14,41 @@ Fram a chatGPT query:
 - from ECM
 - standard PID "PID 01 0C" (Engine RPM)
 - 2 bytes, big-endian
+
+## Frame, MCP25625, WS frame
+
+### on the wire
+start
+sid[10:0]   TB0SIDH=sid[10:3] TB0SIDL=sid[2:0]
+rtr         TXB0DLC[6] aka SSR
+ide         TB0SIDL[3]
+eid[17:0]   TXB0SIDL=eid[17:16] TXB0EID8=eid[15:8] TXB0ID0=EID[7:0]
+--- aka RTR
+r0
+--- ext r1
+dlc[3:0]    TXB0DLC[3:0]
+data[]      TB0D[]
+crc[14:0]
+crcdelim
+ack
+ackdelim
+eof[6:0]
+
+### register order
+SIDH
+SIDl
+EID8
+EID0
+DLC
+D0 - D7
+
+### c++ model
+```
+struct {
+    uint32_t identifier;
+    uint8_t dataLength;
+    uint8_t data[8]; // or pointer
+    bool ide;
+    bool rtr;
+}
+```

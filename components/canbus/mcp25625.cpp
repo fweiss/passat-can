@@ -202,6 +202,7 @@ bool MCP25625::receiveMessage(receive_msg_t * message) {
     return true; // todo no longer needed
 }
 
+// deprecated
 void MCP25625::sendMessage(uint8_t * payload, size_t len) {
     ESP_LOGI(TAG, "send message");
     struct alignas(32) buf {
@@ -245,6 +246,38 @@ void MCP25625::sendMessage(uint8_t * payload, size_t len) {
 
     bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq
 
+}
+
+void MCP25625::transmitFrame(CanFrame &canFrame) {
+    ESP_LOGI(TAG, "send message");
+    struct alignas(32) buf {
+        uint8_t sidh; // sid[10:3]
+        uint8_t sidl; // sid[2:0] ide eid[17:16]
+        uint8_t eid8; // eid[15:8]
+        uint8_t eid0; // eid[7:0]
+        uint8_t dlc;    // rtr dlc[3:0]
+        uint8_t data[8];
+    } buf;
+
+    memset(&buf, 0, sizeof(buf));
+    if (canFrame.extended) {
+        buf.sidh = canFrame.identifier >> 21;
+        buf.sidl = ((canFrame.identifier >> (18 - 5)) & 0xe0) // upper 3 bits hence -5
+            | ((canFrame.identifier >> 16) & 0x03);
+        buf.eid8 = (canFrame.identifier >> 8) & 0xff;
+        buf.eid0 = (canFrame.identifier >> 0) & 0xff;
+        buf.sidl |= 0x08; // ide
+    } else {
+        buf.sidh = canFrame.identifier >> 3;
+        buf.sidl = ((canFrame.identifier & 0x07) << 5);
+    }
+    buf.dlc = canFrame.length; // todo rtr
+    memcpy(buf.data, canFrame.data, canFrame.length);
+
+    writeArrayRegisters(TXB0SIDH, (uint8_t*)&buf, 8);
+    // frame is repeated until TXREQ is cleared
+    bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
+    bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq
 }
 
 void MCP25625::setFilter() {
