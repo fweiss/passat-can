@@ -34,10 +34,10 @@ void AppMcp25625::startBridge() {
     this->httpServer.onFrame = [this] (uint8_t * payload, size_t len) {
         ESP_LOGI(TAG, "websocket frame received");
         CanFrame frame{
-            .identifier = 0x39999999,
-            .length = 1,
-            .data{0xaa},
-            .extended = true,
+            .identifier = 0x3d2,
+            .length = 3,
+            .data{0xaa, 0x55, 0xff},
+            .extended = false,
             .remote = false,
         };   
         mcp25625.transmitFrame(frame);

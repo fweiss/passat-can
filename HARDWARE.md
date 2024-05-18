@@ -54,8 +54,6 @@ USB  +--|<-- VBUSB NC?
 - NXP A1050 (high-speed CAN transceiver)
 - 8L05A (linear voltage regulator)
 - 25Q03213 (32 Mb seriasl NOR flash)
-## MCP25625 click
-$24
 
 ## Cable OBD-II to DB9
 > The cable from Sparkfun was not wired correctly for the MCP-25625 Click.
@@ -89,8 +87,16 @@ PIN 7 | 7 | 2 | J1850 BUS +
 X | 8 | 15 | ISO 9141-2 LOW
 V-OBD9 | 9 | 16 | BAT
 
-## MCP25625 Click
-db9-m, SPI, UART
+## MIKROE MCP25625 Click
+This is a handy breakout board that comes with MCP25625 controller/tansceiver
+and a DB-9m connector.
+There are adapter cables that interface the DB-9m connector to a ODBII connector.
+- $24
+- db9-m, SPI, UART?
+
+I made two modifications so that the device can pick up 12V power from the ODBII connector:
+- cut the trace to CLO
+- wire 12V from the DB-9m to the CLO pin
 
 https://download.mikroe.com/documents/add-on-boards/click/mcp25625/mcp25625-click-schematic-v100.pdf
 

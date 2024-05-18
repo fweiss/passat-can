@@ -255,7 +255,7 @@ void MCP25625::transmitFrame(CanFrame &canFrame) {
         uint8_t sidl; // sid[2:0] ide eid[17:16]
         uint8_t eid8; // eid[15:8]
         uint8_t eid0; // eid[7:0]
-        uint8_t dlc;    // rtr dlc[3:0]
+        uint8_t dlc;
         uint8_t data[8];
     } buf;
 
@@ -271,10 +271,10 @@ void MCP25625::transmitFrame(CanFrame &canFrame) {
         buf.sidh = canFrame.identifier >> 3;
         buf.sidl = ((canFrame.identifier & 0x07) << 5);
     }
-    buf.dlc = canFrame.length; // todo rtr
+    buf.dlc = canFrame.length | (canFrame.remote ? 0x40 : 0);
     memcpy(buf.data, canFrame.data, canFrame.length);
 
-    writeArrayRegisters(TXB0SIDH, (uint8_t*)&buf, 8);
+    writeArrayRegisters(TXB0SIDH, (uint8_t*)&buf, canFrame.length + 5);
     // frame is repeated until TXREQ is cleared
     bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
     bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq

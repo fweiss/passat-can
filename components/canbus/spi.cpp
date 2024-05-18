@@ -161,7 +161,7 @@ void SPI::reset() {
 
 void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "transactionMutex timeout");
+        ESP_LOGE(TAG, "read transactionMutex timeout");
         return;
     }
 
@@ -183,7 +183,7 @@ void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count
 
 void SPI::writeArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "transactionMutex timeout");
+        ESP_LOGE(TAG, "write transactionMutex timeout");
         return;
     }
 
