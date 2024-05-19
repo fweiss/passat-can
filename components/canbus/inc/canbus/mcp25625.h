@@ -19,6 +19,13 @@ struct CanFrame {
     bool remote;
 };
 
+struct CanStatus {
+    uint8_t eflg;
+    uint8_t tec;
+    uint8_t canintf;
+    uint8_t caninte;
+    uint8_t tb0ctrl;
+};
 
 class MCP25625 : public SPI {
 public:
@@ -45,6 +52,7 @@ public:
     void testReceive();
     void testLoopBack();
     void testReceiveStatus();
+    CanStatus getStatus();
 private:
 
     intr_handle_t receiveInterruptHandle;
@@ -61,6 +69,7 @@ private:
         CNF3 = 0x28,
         RXB0DLC = 0x65,
         RXB0CTRL = 0x60,
+        TEC = 0x1c,
         REC = 0x1d,
         EFLG = 0x2d,
         TXB0SIDH = 0x31,

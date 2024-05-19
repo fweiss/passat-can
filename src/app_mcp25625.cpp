@@ -34,11 +34,11 @@ void AppMcp25625::startBridge() {
     this->httpServer.onFrame = [this] (uint8_t * payload, size_t len) {
         ESP_LOGI(TAG, "websocket frame received");
         CanFrame frame{
-            .identifier = 0x3d2,
-            .length = 3,
-            .data{0xaa, 0x55, 0xff},
+            .identifier = 0x3d1,
+            .length = 8,
+            .data{},
             .extended = false,
-            .remote = false,
+            .remote = true,
         };   
         mcp25625.transmitFrame(frame);
     };
@@ -87,13 +87,20 @@ void AppMcp25625::heartbeatFunction(tmrTimerControl*) {
     Indicator::getInstance()->postState(Indicator::canbusNoHeartbeat);
 }
 
+struct WSFrame {
+    uint8_t opcode;
+    uint8_t payloadLength;
+    uint8_t payload[125];
+};
+
 void AppMcp25625::canStatusFunction(TimerHandle_t xTimer) {
     AppMcp25625 *self = static_cast<AppMcp25625*>(pvTimerGetTimerID(xTimer));
     if (self == nullptr) {
         ESP_LOGE(TAG, "canStatusFunction: self is null");
         return;
     }
-    self->mcp25625.testReceiveStatus();
+    // probably cannot log in timer callback
+    // self->mcp25625.testReceiveStatus();
 
     const size_t payloadSize = 8;
     if (self->httpServer.isWebsocketConnected()) {
@@ -101,9 +108,11 @@ void AppMcp25625::canStatusFunction(TimerHandle_t xTimer) {
         // data[0] = message.identifier & 0xff;
         // data[1] = (message.identifier >> 8) & 0xff;
         packLittleEndian(0x03fe, &data[0]);
-        data[5] = 0xaa;
-        // memcpy(&data[5], message.data, message.data_length_code);
-        const int length = 1 + 5;
+
+        CanStatus status = self->mcp25625.getStatus();
+
+        memcpy(&data[5], &status, 5);
+        const int length = 5 + 5;
         self->httpServer.sendFrame(data, length);
     }
 }

@@ -293,6 +293,17 @@ void MCP25625::setFilter() {
 
 }
 
+CanStatus MCP25625::getStatus() {
+    CanStatus canStatus;
+    readRegister(reg::CANINTF, canStatus.canintf);
+    readRegister(reg::CANINTE, canStatus.caninte);
+    readRegister(reg::TXB0CTRL, canStatus.tb0ctrl);
+    readRegister(reg::EFLG, canStatus.eflg);
+    readRegister(reg::TEC, canStatus.tec);
+
+    return canStatus; // copy on return stack
+}
+
 void MCP25625::testReceiveStatus() {
     uint8_t canintf;
     readRegister(reg::CANINTF, canintf);
