@@ -13,6 +13,9 @@ class App {
         // frameModel
     }
     constructor() {
+        const statusFrameId = 0x3fe
+
+        this.statusPanel = new StatusPanel()
         let totalFrames = 0
 
         let webSocket = new WSConnection()
@@ -24,7 +27,9 @@ class App {
             const frame = new Frame(data)
 
             this.dispatchFrame(frame)
-    
+            if (frame.fd === statusFrameId) {
+                this.statusPanel.update(new Uint8Array(frame.data))
+            }
             // find or create frame summary
             const fd = frame.fd
             let frameSummary = frameSummaries[fd]
@@ -175,5 +180,32 @@ class FrameSummary {
     }
     get period() {
         return (this.sampleLastTime - this.sampleStartTime) / this.counter
+    }
+}
+class StatusPanel {
+    constructor() {
+        const status = $('#status');
+        status.empty();
+        const t = $('<table>').appendTo(status);
+        const tb = $('<tbody>').appendTo(t);
+
+        const addRow = (label) => {
+            let tr = $('<tr>').appendTo(tb)
+            $('<th>').appendTo(tr).text(label.toUpperCase())
+            this[label] = $('<td>').appendTo(tr);
+        }
+        addRow('eflg')
+        addRow('tec')
+        addRow('canintf')
+        addRow('caninte')
+        addRow('tb0ctrl')
+    }
+    // see CanStatus in mcp25625.h
+    update(status) {
+        this.eflg.text(status[0].toString(16).padStart(2, '0'))
+        this.tec.text(status[1].toString(16).padStart(2, '0'))
+        this.canintf.text(status[2].toString(16).padStart(2, '0'))
+        this.caninte.text(status[3].toString(16).padStart(2, '0'))
+        this.tb0ctrl.text(status[4].toString(16).padStart(2, '0'))
     }
 }

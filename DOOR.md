@@ -88,3 +88,6 @@ bottom to top
 [16..1]
 taster
 P-23 heckdeckelentriegelung
+
+## Links and References
+[Supplier of industrial CAN modules](https://www.ametekvis.com/products/can-control-modules)
