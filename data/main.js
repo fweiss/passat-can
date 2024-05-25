@@ -51,7 +51,11 @@ class App {
             console.log(rpm)
             // wes.send(rpm)
         })
+        // fixme separate button send codes
         $('#send').click(event => {
+            webSocket.send(200)
+        })
+        $('#fuzzing').click(event => {
             webSocket.send(200)
         })
         $(this.summary).on('update', event => {
@@ -193,6 +197,7 @@ class StatusPanel {
             let tr = $('<tr>').appendTo(tb)
             $('<th>').appendTo(tr).text(label.toUpperCase())
             this[label] = $('<td>').appendTo(tr);
+            this[label + 'flags'] = $('<td>').appendTo(tr);
         }
         addRow('eflg')
         addRow('tec')
@@ -203,9 +208,24 @@ class StatusPanel {
     // see CanStatus in mcp25625.h
     update(status) {
         this.eflg.text(status[0].toString(16).padStart(2, '0'))
+        this.eflgflags.text(new Mcp25625Flags().eflgNames(status[0]))
         this.tec.text(status[1].toString(16).padStart(2, '0'))
         this.canintf.text(status[2].toString(16).padStart(2, '0'))
         this.caninte.text(status[3].toString(16).padStart(2, '0'))
         this.tb0ctrl.text(status[4].toString(16).padStart(2, '0'))
+    }
+}
+
+class Mcp25625Flags {
+    eflgNames(flags) {
+        const bitNames = { RX1OVR: 7, RX0OVR: 6, TXBO: 5, TXEP: 4, RXEP: 3, TXWAR: 2, RXWAR: 1, EWARN: 0}
+        let names = []
+        for (const [key, value] of Object.entries(bitNames)) {
+            const mask = 1 << value
+            if (flags & mask) {
+                names.push(key)
+            }
+        }
+        return names.join(',')
     }
 }

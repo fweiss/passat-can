@@ -8,7 +8,9 @@ static const char TAG[] = "app-mcp25625";
 //forward
 static void packLittleEndian(uint32_t identifier, uint8_t * const data);
 
-AppMcp25625::AppMcp25625() : mcp25625() {}
+AppMcp25625::AppMcp25625() : mcp25625() {
+    esp_log_level_set(TAG, ESP_LOG_INFO);
+}
 
 AppMcp25625::~AppMcp25625() {}
 
@@ -19,6 +21,12 @@ void AppMcp25625::initBridge() {
     const bool autoReload = false;
     heartbeatTimer = xTimerCreate("can heartbeat", timerPeriod, autoReload, nullptr, heartbeatFunction);
     canStatusTimer = xTimerCreate("can status", timerPeriod, true, (void*)this, canStatusFunction);
+    fuzzingTimer = xTimerCreate("can fuzzing", pdMS_TO_TICKS(10), true, (void*)this, fuzzingFunction);
+
+    // todo check error
+    // xTaskCreatePinnedToCore(canReceiveFrameTaskFunction, "can receive task", 2048, (void*)this, 1, &canReceiveFrameTask, APP_CPU_NUM);
+    xTaskCreatePinnedToCore(canTransmitFrameTaskFunction, "can transmit task", 4096, (void*)this, 1, &canTransmitFrameTask, APP_CPU_NUM);
+    xTaskCreatePinnedToCore(canErrorTaskFunction, "can error task", 2048, (void*)this, 1, &canErrorTask, APP_CPU_NUM);
 }
 // deinitBridge
 
@@ -28,8 +36,9 @@ void AppMcp25625::startBridge() {
     // the logging blocks the core and the ISR task can't finish before the next CAN frame is ready
     xTaskCreatePinnedToCore(webSocketSendTask, "can isr task", 4096, (void*)this, 1, NULL, APP_CPU_NUM);
 
-    ESP_LOGI(TAG, "start can status timer %p", canStatusTimer);
+    // ESP_LOGI(TAG, "start can status timer %p", canStatusTimer);
     xTimerStart(canStatusTimer, 10);
+    // xTimerStart(fuzzingTimer, 100);
 
     this->httpServer.onFrame = [this] (uint8_t * payload, size_t len) {
         ESP_LOGI(TAG, "websocket frame received");
@@ -40,7 +49,8 @@ void AppMcp25625::startBridge() {
             .extended = false,
             .remote = true,
         };   
-        mcp25625.transmitFrame(frame);
+        // mcp25625.transmitFrame(frame);
+        xTimerStart(this->fuzzingTimer, 100);
     };
     
     mcp25625.attachReceiveInterrupt();
@@ -49,7 +59,7 @@ void AppMcp25625::startBridge() {
     while (true) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         // todo need a mutex
-        mcp25625.testReceiveStatus();
+        // mcp25625.testReceiveStatus();
     }
     ESP_LOGI(TAG, "bridge shutting down");
     mcp25625.deinit();
@@ -114,6 +124,63 @@ void AppMcp25625::canStatusFunction(TimerHandle_t xTimer) {
         memcpy(&data[5], &status, 5);
         const int length = 5 + 5;
         self->httpServer.sendFrame(data, length);
+    }
+}
+
+void AppMcp25625::fuzzingFunction(TimerHandle_t xTimer) {
+    AppMcp25625 *self = static_cast<AppMcp25625*>(pvTimerGetTimerID(xTimer));
+    if (self == nullptr) {
+        ESP_LOGE(TAG, "fuzzingFunction: self is null");
+        return;
+    }
+    static CanFrame canFrame{
+        .identifier = 0x1,
+        .length = 8,
+        .data{},
+        .extended = false,
+        .remote = true,
+    };
+    ESP_LOGD(TAG, "fuzzingFunction %lx", canFrame.identifier);
+    self->mcp25625.transmitFrame(canFrame);
+    canFrame.identifier += 1;
+}
+
+void AppMcp25625::canReceiveFrameTaskFunction(void * pvParameters) {
+    AppMcp25625 * const self = static_cast<AppMcp25625*>(pvParameters);
+    while (true) {
+        receive_msg_t message;
+        if (xQueueReceive(self->mcp25625.receiveMessageQueue, &message, portMAX_DELAY)) {
+            // webSocketReceiveFrame
+            // webSocketFrameQueue
+        }
+    }
+}
+
+void AppMcp25625::canTransmitFrameTaskFunction(void * pvParameters) {
+    AppMcp25625 * const self = static_cast<AppMcp25625*>(pvParameters);
+    while (true) {
+        CanStatus canStatus;
+        if (xQueueReceive(self->mcp25625.transmitFrameQueue, &canStatus, portMAX_DELAY)) {
+            ESP_LOGI(TAG, "transmit status canintf: %x caninte: %x eflg %x tec %d", 
+                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+
+            // webSocketTransmitFrame
+            // webSocketFrameQueue
+        }
+    }
+}
+
+void AppMcp25625::canErrorTaskFunction(void * pvParameters) {
+    AppMcp25625 * const self = static_cast<AppMcp25625*>(pvParameters);
+    while (true) {
+        CanStatus canStatus;
+        if (xQueueReceive(self->mcp25625.errorQueue, &canStatus, portMAX_DELAY)) {
+            ESP_LOGI(TAG, "error status canintf: %x caninte: %x eflg %x tec %d", 
+                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+
+            // webSocketErrorFrame
+            // webSocketFrameQueue
+        }
     }
 }
 

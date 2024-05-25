@@ -1,6 +1,6 @@
 #include "mcp25625.h"
 
-#define LOG_LOCAL_LEVEL ESP_LOG_WARN
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include "esp_log.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -13,8 +13,15 @@ static char const * const TAG = "mcp25625";
 static uint32_t getIdentifier(uint8_t sidh, uint8_t sidl, uint8_t eid8, uint8_t eid0);
 
 MCP25625::MCP25625() {
-    receiveISRQueue = xQueueCreate(10, sizeof(timestamp_t));
+    // debug will increase ISR latency
+    esp_log_level_set(TAG, ESP_LOG_INFO);
+
     receiveMessageQueue = xQueueCreate(20, sizeof(receive_msg_t));
+    transmitFrameQueue = xQueueCreate(20, sizeof(CanStatus));
+    errorQueue = xQueueCreate(20, sizeof(CanStatus));
+
+    interruptSemaphore = xSemaphoreCreateBinary();
+    xTaskCreatePinnedToCore(interruptTask, "interrupt task", 4048, this, 5, NULL, APP_CPU_NUM);
 }
 MCP25625::~MCP25625() {
 }
@@ -131,32 +138,25 @@ void MCP25625::testLoopBack() {
         ESP_LOGI(TAG, "loopback canintf %x", canintf);
     }
 }
-static QueueHandle_t *gg;
 
+// todo not just receive, but also transmit
 void MCP25625::attachReceiveInterrupt() {
     esp_err_t err;
 
     ESP_LOGI(TAG, "attach receive interrupt");
 
-    // task to read buffer separate from ISR
-    xTaskCreatePinnedToCore(receiveMessageTask, "receive task", 2048, this, 2, NULL, APP_CPU_NUM);
-
-    // err = esp_intr_alloc(source, flags, handler, arg, &receiveInterruptHandle);
-    // gpio_install_isr_service
-
-    const gpio_num_t interruptPin = GPIO_NUM_21;
+    const gpio_num_t interruptPin = GPIO_NUM_21; // fixme extract to configuration
     esp_rom_gpio_pad_select_gpio(interruptPin);
     gpio_set_direction(interruptPin, GPIO_MODE_INPUT);
     gpio_pulldown_dis(interruptPin);
     gpio_pullup_en(interruptPin);
     gpio_set_intr_type(interruptPin, GPIO_INTR_NEGEDGE);
-gg = &receiveISRQueue;
     gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
-    err = gpio_isr_handler_add(interruptPin, receiveInterruptISR, this);
+    err = gpio_isr_handler_add(interruptPin, interruptISR, this);
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "give this %p", this);
     } else {
-        ESP_LOGE(TAG, "ist handler add err: %x", err);
+        ESP_LOGE(TAG, "isr handler add err: %x", err);
     }
 }
 void MCP25625::detachReceiveInterrupt() {
@@ -200,6 +200,15 @@ bool MCP25625::receiveMessage(receive_msg_t * message) {
     bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rxb0
 
     return true; // todo no longer needed
+}
+
+// todo parameterize RXn, use special SPI command
+void MCP25625::readFrameBuffer(FrameBuffer &frameBuffer) {
+    readArrayRegisters(RXB0SIDH, (uint8_t*)&frameBuffer, sizeof(frameBuffer));
+}
+// todo parameterize TXn, use special SPI command
+void MCP25625::writeFrameBuffer(FrameBuffer &frameBuffer) {
+    writeArrayRegisters(TXB0SIDH, (uint8_t*)&frameBuffer, sizeof(frameBuffer));
 }
 
 // deprecated
@@ -249,7 +258,7 @@ void MCP25625::sendMessage(uint8_t * payload, size_t len) {
 }
 
 void MCP25625::transmitFrame(CanFrame &canFrame) {
-    ESP_LOGI(TAG, "send message");
+    ESP_LOGD(TAG, "send message");
     struct alignas(32) buf {
         uint8_t sidh; // sid[10:3]
         uint8_t sidl; // sid[2:0] ide eid[17:16]
@@ -275,6 +284,8 @@ void MCP25625::transmitFrame(CanFrame &canFrame) {
     memcpy(buf.data, canFrame.data, canFrame.length);
 
     writeArrayRegisters(TXB0SIDH, (uint8_t*)&buf, canFrame.length + 5);
+
+    bitModifyRegister(reg::CANINTE, 0x80, 0x80); // MERRE
     // frame is repeated until TXREQ is cleared
     bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
     bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq
@@ -304,7 +315,8 @@ CanStatus MCP25625::getStatus() {
     return canStatus; // copy on return stack
 }
 
-void MCP25625::testReceiveStatus() {
+// @deprecated
+void MCP25625::xtestReceiveStatus() {
     uint8_t canintf;
     readRegister(reg::CANINTF, canintf);
     uint8_t caninte;
@@ -323,44 +335,105 @@ void MCP25625::startReceiveMessages() {
     timing();
     bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
     bitModifyRegister(reg::CANINTE, 0x01, 0x01); // RX0IE todo abstract
+    bitModifyRegister(reg::CANINTE, 0x04, 0x04); // TX0IE todo abstract
     REQOP normalMode(0); // get out of configuration mode
     bitModifyRegister(reg::CANCTRL, normalMode);
     bitModifyRegister(reg::EFLG, 0x40, 0x00);
     bitModifyRegister(reg::CANINTF, 0x20, 0x00);
 }
 
-// defer reading the message from the receive buffer
-// CANSTAT:ICOD to demultiplex interrupt
-void IRAM_ATTR MCP25625::receiveInterruptISR(void *arg) {
-    timestamp_t timestamp = esp_log_timestamp();
-    BaseType_t xHigherPriorityTaskWokenByPost = pdFALSE;
-    BaseType_t err = xQueueSendFromISR(*gg, &timestamp, &xHigherPriorityTaskWokenByPost);
-    // ESP_DRAM_LOGI(TAG, "isr %d", pdTRUE);
-    if (xHigherPriorityTaskWokenByPost) {
-        portYIELD_FROM_ISR();
-    }
+// MCP25625 interrupt service routines
+// interruptISR -> interruptSemaphore -> interruptTask:
+// rx: receiveISRQueue(timestamp) -> receiveMessageTask -> receiveMessageQueue(message) -> app
+
+// bridge ISR to task
+SemaphoreHandle_t MCP25625::interruptSemaphore = nullptr;
+
+// interrupt handler registered for the INT GPIO pin
+void IRAM_ATTR MCP25625::interruptISR(void *arg) {
+    MCP25625 * self = static_cast<MCP25625*>(arg);
+    xSemaphoreGiveFromISR(self->interruptSemaphore, NULL);
 }
 
-// quickly read the message from the receive buffer and defer it to the app
-// this must take less than a CAN message time to prevent buffer overflow
-void MCP25625::receiveMessageTask(void * pvParameters) {
-    ESP_LOGI(TAG, "starting can receive task");
-
+// task that dispatches interrupt events
+// MERRF: Message Error Interrupt Flag bit
+// ERRIF: Error Interrupt Flag bit (multiple sources in the EFLG register)
+// EFLG: (RX1OVR, RX0OVR, TXBO, TXEP, RXEP, TXWAR, RXWAR)
+void MCP25625::interruptTask(void * pvParameters) {
     MCP25625 * self = static_cast<MCP25625*>(pvParameters);
+    // todo extract
+    auto getIcod = [self] () {
+        uint8_t icod;
+        self->readRegister(reg::CANSTAT, icod);
+        return (icod >> 1) & 0x07;
+    };
+    BaseType_t status;
     while (true) {
-        timestamp_t timestamp;
-        if (xQueueReceive(self->receiveISRQueue, &timestamp, portMAX_DELAY)) {
-            receive_msg_t message;
-            bool success = self->receiveMessage(&message);
-            if (success) {
-                xQueueSend(self->receiveMessageQueue, &message, portMAX_DELAY);
-            } else {
-                ESP_LOGI(TAG, "nothing to receive");
-            }
-        }
-    }
+        // block and wait for an interrupt
+        // todo no timeout, but check status
+        status = xQueueSemaphoreTake(self->interruptSemaphore, portMAX_DELAY);
 
+        timestamp_t timestamp = esp_log_timestamp();
+        uint8_t icod = getIcod();
+        uint16_t ticksToWait = 1000;
+        CanStatus canStatus;
+        ESP_LOGD(TAG, "interrupt %d", icod);
+        switch (icod) { // [Register 4.35]
+            case 0: // yup, we get this
+                canStatus = self->getStatus();
+                ESP_LOGI(TAG, " NO interrupt canintf: %x caninte: %x eflg %x rec %d", 
+                    canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+
+                // canStatus = self->getStatus();
+                // xQueueSend(self->errorQueue, &canStatus, ticksToWait);
+
+                self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
+                break;
+            case 0x01: // 001 = ERR interrupt
+                canStatus = self->getStatus();
+                ESP_LOGI(TAG, " ERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
+                    canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+
+                // canStatus = self->getStatus();
+                // xQueueSend(self->errorQueue, &canStatus, ticksToWait);
+
+                self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
+                self->bitModifyRegister(reg::CANINTF, 0x20, 0x00); // ERRIF
+                self->bitModifyRegister(reg::EFLG, 0x40, 0x00); // WAKIF
+                break;
+            case 0x03: {// 011 = TXB0 interrupt
+                ESP_LOGD(TAG, "TXB0 interrupt");
+
+                CanStatus canStatus = self->getStatus();
+                xQueueSend(self->transmitFrameQueue, &canStatus, ticksToWait);
+
+                self->bitModifyRegister(reg::CANINTF, 0x04, 0x00); // clear tx0if
+                self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
+                break;
+            }
+            case 0x06: // 110 = RXB0 interrupt
+                ESP_LOGD(TAG, "RXB0 interrupt");
+                FrameBuffer frameBuffer;
+                self->readFrameBuffer(frameBuffer);
+                self->bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rx0if
+
+                // see receiveMessage()
+                receive_msg_t message;
+                FrameBuffer & buf = frameBuffer;
+                message.identifier = getIdentifier(buf.sidh, buf.sidl, buf.eid8, buf.eid0);
+                message.flags.srr = SRR::of(buf.sidl);
+                message.flags.ide = IDE::of(buf.sidl);
+                message.data_length_code = buf.dlc & 0x0f;
+                memcpy(message.data, buf.data, sizeof(buf.data));
+
+                xQueueSend(self->receiveMessageQueue, &message, ticksToWait);
+                // xQueueSend(self->receiveISRQueue, &timestamp, ticksToWait);
+                break;
+        }
+        // todo handle and clear all interrrupt flags
+    }
 }
+
 
 // in extended mode, the SID is the most significant 11 bits 
 // and the EID is the least significant 18 bits

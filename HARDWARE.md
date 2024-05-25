@@ -40,6 +40,7 @@ filter caps
 See digikey list
 
 ## Espressif dev board
+
 ### power
 is it OK to power off the buck converter and the USB-C at the same time?
 J1-VCC-5V

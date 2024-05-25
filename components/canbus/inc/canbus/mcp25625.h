@@ -27,13 +27,26 @@ struct CanStatus {
     uint8_t tb0ctrl;
 };
 
+// as read/written directly from/to the MCP25625
+struct alignas(32) FrameBuffer {
+        uint8_t sidh;
+        uint8_t sidl;
+        uint8_t eid8;
+        uint8_t eid0;
+        uint8_t dlc;
+        uint8_t data[8];
+        // uint8_t canstat;
+        // uint8_t canctrl;
+};
+
 class MCP25625 : public SPI {
 public:
     MCP25625();
     virtual ~MCP25625();
 
-    QueueHandle_t receiveISRQueue;
     QueueHandle_t receiveMessageQueue;
+    QueueHandle_t transmitFrameQueue;
+    QueueHandle_t errorQueue;
 
     void init();
     void deinit();
@@ -51,9 +64,12 @@ public:
     void testRegisters();
     void testReceive();
     void testLoopBack();
-    void testReceiveStatus();
+    void xtestReceiveStatus();
     CanStatus getStatus();
 private:
+
+    void readFrameBuffer(FrameBuffer &frameBuffer);
+    void writeFrameBuffer(FrameBuffer &frameBuffer);
 
     intr_handle_t receiveInterruptHandle;
     static void receiveMessageTask(void * pvParameters);
@@ -85,7 +101,11 @@ private:
         RXM0SIDL = 0x21,
     };
     void timing();
-    static void receiveInterruptISR(void *arg);
+
+    static SemaphoreHandle_t interruptSemaphore;
+    static void interruptTask(void * pvParameters);
+    static void interruptISR(void *arg);
+
     void clearRX0OVR();
 };
 
