@@ -25,6 +25,7 @@ struct CanStatus {
     uint8_t canintf;
     uint8_t caninte;
     uint8_t tb0ctrl;
+    uint8_t icod;
 };
 
 // as read/written directly from/to the MCP25625
@@ -51,7 +52,7 @@ public:
     void init();
     void deinit();
 
-    void attachReceiveInterrupt();
+    void attachInterrupt();
     void detachReceiveInterrupt();
     void startReceiveMessages();
     bool receiveMessage(receive_msg_t * message);
@@ -60,12 +61,7 @@ public:
     void sendMessage(uint8_t * payload, size_t len); //deprecated
     void transmitFrame(CanFrame &canFrame);
 
-
-    void testRegisters();
-    void testReceive();
-    void testLoopBack();
-    void xtestReceiveStatus();
-    CanStatus getStatus();
+    void getStatus(CanStatus &canStatus);
 private:
 
     void readFrameBuffer(FrameBuffer &frameBuffer);

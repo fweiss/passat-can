@@ -26,7 +26,7 @@ void AppMcp25625::initBridge() {
     // todo check error
     // xTaskCreatePinnedToCore(canReceiveFrameTaskFunction, "can receive task", 2048, (void*)this, 1, &canReceiveFrameTask, APP_CPU_NUM);
     xTaskCreatePinnedToCore(canTransmitFrameTaskFunction, "can transmit task", 4096, (void*)this, 1, &canTransmitFrameTask, APP_CPU_NUM);
-    xTaskCreatePinnedToCore(canErrorTaskFunction, "can error task", 2048, (void*)this, 1, &canErrorTask, APP_CPU_NUM);
+    xTaskCreatePinnedToCore(canErrorTaskFunction, "can error task", 4096, (void*)this, 1, &canErrorTask, APP_CPU_NUM);
 }
 // deinitBridge
 
@@ -53,7 +53,7 @@ void AppMcp25625::startBridge() {
         xTimerStart(this->fuzzingTimer, 100);
     };
     
-    mcp25625.attachReceiveInterrupt();
+    mcp25625.attachInterrupt();
     // mcp25625.testReceive();
     mcp25625.startReceiveMessages();
     while (true) {
@@ -103,6 +103,7 @@ struct WSFrame {
     uint8_t payload[125];
 };
 
+// @depracate - for testing only
 void AppMcp25625::canStatusFunction(TimerHandle_t xTimer) {
     AppMcp25625 *self = static_cast<AppMcp25625*>(pvTimerGetTimerID(xTimer));
     if (self == nullptr) {
@@ -119,7 +120,8 @@ void AppMcp25625::canStatusFunction(TimerHandle_t xTimer) {
         // data[1] = (message.identifier >> 8) & 0xff;
         packLittleEndian(0x03fe, &data[0]);
 
-        CanStatus status = self->mcp25625.getStatus();
+        CanStatus status;
+        self->mcp25625.getStatus(status);
 
         memcpy(&data[5], &status, 5);
         const int length = 5 + 5;
@@ -161,8 +163,8 @@ void AppMcp25625::canTransmitFrameTaskFunction(void * pvParameters) {
     while (true) {
         CanStatus canStatus;
         if (xQueueReceive(self->mcp25625.transmitFrameQueue, &canStatus, portMAX_DELAY)) {
-            ESP_LOGI(TAG, "transmit status canintf: %x caninte: %x eflg %x tec %d", 
-                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+            // ESP_LOGE(TAG, "transmit status canintf: %x caninte: %x eflg %x tec %d icod %x", 
+            //     canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec, canStatus.icod);
 
             // webSocketTransmitFrame
             // webSocketFrameQueue
@@ -175,8 +177,8 @@ void AppMcp25625::canErrorTaskFunction(void * pvParameters) {
     while (true) {
         CanStatus canStatus;
         if (xQueueReceive(self->mcp25625.errorQueue, &canStatus, portMAX_DELAY)) {
-            ESP_LOGI(TAG, "error status canintf: %x caninte: %x eflg %x tec %d", 
-                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+            ESP_LOGE(TAG, "error status canintf: %x caninte: %x eflg %x tec %d icod %x", 
+                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec, canStatus.icod);
 
             // webSocketErrorFrame
             // webSocketFrameQueue
