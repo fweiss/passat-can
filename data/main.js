@@ -209,11 +209,12 @@ class StatusPanel {
     update(status) {
         this.eflg.text(status[0].toString(16).padStart(2, '0'))
         this.eflgflags.text(new Mcp25625Flags().eflgNames(status[0]))
-        this.tec.text(status[1].toString(16).padStart(2, '0'))
+        this.tec.text(status[1].toString().padStart(2, '0'))
         this.canintf.text(status[2].toString(16).padStart(2, '0'))
         this.canintfflags.text(new Mcp25625Flags().caninfNames(status[2]))
         this.caninte.text(status[3].toString(16).padStart(2, '0'))
         this.tb0ctrl.text(status[4].toString(16).padStart(2, '0'))
+        this.tb0ctrlflags.text(new Mcp25625Flags().tbnctrlNames(status[4]))
     }
 }
 
@@ -231,6 +232,20 @@ class Mcp25625Flags {
     }
     caninfNames = (flags) => {
         const bitNames = { MERRF: 7, WAKIF: 6, ERRIF: 5, TX2IF: 4, TX1IF: 3, TX0IF: 2, RX1IF: 1, RX0IF: 0}
+        let names = []
+        for (const [key, value] of Object.entries(bitNames)) {
+            const mask = 1 << value
+            if (flags & mask) {
+                names.push(key)
+            }
+        }
+        return names.join(',')
+    }
+    tbnctrlNames = (flags) => {
+        const bitNames = { ABTF: 6, MLOA: 5, TXERR: 4, TXREQ: 3, TXP1: 1, TXP0: 0}
+        return this.mapFlags(flags, bitNames)
+    }
+    mapFlags = (flags, bitNames) => {
         let names = []
         for (const [key, value] of Object.entries(bitNames)) {
             const mask = 1 << value

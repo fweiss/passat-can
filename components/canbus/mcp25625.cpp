@@ -83,6 +83,7 @@ void MCP25625::attachInterrupt() {
 
     // enable interrupts
     bitModifyRegister(reg::CANINTE, 0xa5, 0xa5); // MERRIE, ERRIE, RX0IE, TX0IE
+    bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
 }
 void MCP25625::detachReceiveInterrupt() {
     esp_err_t err;
@@ -98,6 +99,7 @@ void MCP25625::detachReceiveInterrupt() {
 // the interrupt ocurred before the previous flag was cleared.
 // can shorten interrupt service by anothe 52 us by using
 // read rx buffer which clears the flag.
+// @deprecated?
 bool MCP25625::receiveMessage(receive_msg_t * message) {
     // alignment required by SPI DMA
     struct alignas(32) buf {
@@ -215,7 +217,7 @@ void MCP25625::transmitFrame(CanFrame &canFrame) {
 
     // bitModifyRegister(reg::CANINTE, 0x80, 0x80); // MERRE
     // frame is repeated until TXREQ is cleared
-    bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
+    // bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
     bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq
 }
 
@@ -238,6 +240,17 @@ void MCP25625::getStatus(CanStatus &canStatus) {
     readRegister(reg::TXB0CTRL, canStatus.tb0ctrl);
     readRegister(reg::EFLG, canStatus.eflg);
     readRegister(reg::TEC, canStatus.tec);
+}
+
+void MCP25625::getStatus(CanStatus &canStatus, InterruptFlagsBuffer &interruptFlagsBuffer) {
+    // readRegister(reg::CANINTF, canStatus.canintf);
+    // readRegister(reg::CANINTE, canStatus.caninte);
+    readRegister(reg::TXB0CTRL, canStatus.tb0ctrl);
+    // readRegister(reg::EFLG, canStatus.eflg);
+    readRegister(reg::TEC, canStatus.tec);
+    canStatus.canintf = interruptFlagsBuffer.canintf;
+    canStatus.caninte = interruptFlagsBuffer.caninte;
+    canStatus.eflg = interruptFlagsBuffer.eflg;
 }
 
 void MCP25625::startReceiveMessages() {
@@ -290,14 +303,8 @@ void MCP25625::interruptTask(void * pvParameters) {
         // todo no timeout, but check status
         status = xQueueSemaphoreTake(self->interruptSemaphore, portMAX_DELAY);
 
-        struct alignas(32) {
-            uint8_t caninte;
-            uint8_t canintf;
-            uint8_t eflg;
-            uint8_t canstat;
-        } interruptFlagsBuffer;
-
         while (true) { // check for mutliple flags
+            InterruptFlagsBuffer interruptFlagsBuffer;
             self->readArrayRegisters(reg::CANINTE, (uint8_t*)&interruptFlagsBuffer, sizeof(interruptFlagsBuffer));
             uint8_t icod = (interruptFlagsBuffer.canstat >> 1) & 0x07;
             // if ((interruptFlagsBuffer.canintf & interruptFlagsBuffer.caninte) == 0) {
@@ -312,19 +319,20 @@ void MCP25625::interruptTask(void * pvParameters) {
         ESP_LOGD(TAG, "interrupt %d", icod);
         switch (icod) { // [Register 4.35]
             case 0: // 000 = MERR interrupt
-                self->getStatus(canStatus);
-                canStatus.icod = icod + 0x80;
-                ESP_LOGD(TAG, "MERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
-                    canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+                // self->getStatus(canStatus,interruptFlagsBuffer);
+                // canStatus.icod = icod + 0x80;
+                // ESP_LOGD(TAG, "MERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
+                //     canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
 
-                // canStatus = self->getStatus();
-                xQueueSend(self->errorQueue, &canStatus, ticksToWait);
+                // // canStatus = self->getStatus();
+                // xQueueSend(self->errorQueue, &canStatus, ticksToWait);
 
+                self->bitModifyRegister(reg::TXB0CTRL, 0x08, 0x00); // TXREQ
                 self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
                 break;
             case 0x01: // 001 = ERR interrupt
                 // EFLG indicates: RX1OVR, RX0OVR, TXBO, TXEP, RXEP, TXWAR, RXWAR, EWARN
-                self->getStatus(canStatus);
+                self->getStatus(canStatus,interruptFlagsBuffer);
                 canStatus.icod = icod;
                 ESP_LOGD(TAG, "ERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
                     canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
@@ -341,7 +349,7 @@ void MCP25625::interruptTask(void * pvParameters) {
             case 0x04: // 100 = TXB1 interrupt
                 ESP_LOGD(TAG, "TXB0 interrupt");
 
-                self->getStatus(canStatus);
+                self->getStatus(canStatus,interruptFlagsBuffer);
                 canStatus.icod = icod;
 
                 xQueueSend(self->transmitFrameQueue, &canStatus, ticksToWait);

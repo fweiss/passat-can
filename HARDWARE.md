@@ -1,4 +1,4 @@
-+# Hardware
+# Hardware
 Information about the hardware components
 
 ## Overview
@@ -8,6 +8,25 @@ The prototype consists of the following components:
 - buck convertor from Pololu
 - OBDII-DB9 cable
 - solderless prototyping board
+
+## Espressif ESP32-S3 dev board
+Official Espressif dev board.
+Has "narrow" pinouts to allow better connectivity on standard solderless prototype board.
+
+- use the onboard RGB to indicate connection status
+- use onboard 3V3 LDO to power Micro CAN
+
+### Pins used
+Orientation with antenna up: J1, J2
+
+J1:
+- G Gnd (oscilloscope)
+- GPIO10 CS
+- GPIO11 MOSI
+- GPIO12 SCLK
+- GPIO13 MISO
+J2:
+- GPIO21 INT
 
 ## Olimex ESP32 DevKit Lipo
 
@@ -38,8 +57,6 @@ filter caps
 
 ## 12 v buck 5 V
 See digikey list
-
-## Espressif dev board
 
 ### power
 is it OK to power off the buck converter and the USB-C at the same time?

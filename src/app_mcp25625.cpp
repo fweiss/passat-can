@@ -21,7 +21,7 @@ void AppMcp25625::initBridge() {
     const bool autoReload = false;
     heartbeatTimer = xTimerCreate("can heartbeat", timerPeriod, autoReload, nullptr, heartbeatFunction);
     canStatusTimer = xTimerCreate("can status", timerPeriod, true, (void*)this, canStatusFunction);
-    fuzzingTimer = xTimerCreate("can fuzzing", pdMS_TO_TICKS(10), true, (void*)this, fuzzingFunction);
+    fuzzingTimer = xTimerCreate("can fuzzing", pdMS_TO_TICKS(100), true, (void*)this, fuzzingFunction);
 
     // todo check error
     // xTaskCreatePinnedToCore(canReceiveFrameTaskFunction, "can receive task", 2048, (void*)this, 1, &canReceiveFrameTask, APP_CPU_NUM);
@@ -177,8 +177,8 @@ void AppMcp25625::canErrorTaskFunction(void * pvParameters) {
     while (true) {
         CanStatus canStatus;
         if (xQueueReceive(self->mcp25625.errorQueue, &canStatus, portMAX_DELAY)) {
-            ESP_LOGE(TAG, "error status canintf: %x caninte: %x eflg %x tec %d icod %x", 
-                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec, canStatus.icod);
+            ESP_LOGE(TAG, "error status canintf: %x caninte: %x eflg %x tec %d tboctrl %x icod %x", 
+                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec, canStatus.tb0ctrl, canStatus.icod);
 
             // webSocketErrorFrame
             // webSocketFrameQueue

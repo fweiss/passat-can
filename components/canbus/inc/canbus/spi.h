@@ -35,10 +35,26 @@ private:
     // the spi interface requires int16_t, but mcp uses only uint8_t
     // mc25625 SPI command enumeration
     enum cmd {
-        READ = 0x03,
         WRITE = 0x02,
+        READ = 0x03,
         BIT_MODIFY = 0x05,
+        LOAD_TX_BUFFER = 0x40,
+        RTS = 0x80,
+        READ_RX_BUFFER = 0x90,
+        READ_STATUS = 0xa0,
+        RX_STATUS = 0xb0,
         RESET = 0xc0,
+    };
+    // interrupt codes in CANSTAT
+    enum icod {
+        ICOD_MERR = 0,
+        ICOD_ERR = 1,
+        ICOD_WAK = 2,
+        ICOD_TX0 = 3,
+        ICOD_TX1 = 4,
+        ICOD_TX2 = 5,
+        ICOD_RX0 = 6,
+        ICOD_RXB = 7,
     };
 };
 

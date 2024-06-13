@@ -40,6 +40,13 @@ struct alignas(32) FrameBuffer {
         // uint8_t canctrl;
 };
 
+struct InterruptFlagsBuffer {
+    uint8_t caninte;
+    uint8_t canintf;
+    uint8_t eflg;
+    uint8_t canstat;
+};
+
 class MCP25625 : public SPI {
 public:
     MCP25625();
@@ -62,6 +69,7 @@ public:
     void transmitFrame(CanFrame &canFrame);
 
     void getStatus(CanStatus &canStatus);
+    void getStatus(CanStatus &canStatus, InterruptFlagsBuffer&interruptFlagsBuffer);
 private:
 
     void readFrameBuffer(FrameBuffer &frameBuffer);

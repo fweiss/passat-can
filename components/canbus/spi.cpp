@@ -1,6 +1,7 @@
 #include "spi.h"
 
 #include "esp_log.h"
+#include <cstring>
 
 static char const * const TAG = "mcp25625-spi";
 
@@ -168,6 +169,7 @@ void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count
     esp_err_t err;
 
     spi_transaction_t transaction {};
+    memset(&transaction, 0, sizeof(spi_transaction_t));
     transaction.cmd = cmd::READ;
     transaction.addr = startAddress;
     transaction.flags = 0;
