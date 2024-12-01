@@ -44,18 +44,24 @@ The SSID is "wallop"
 ## Status LED (ESP32-S3 devkit)
 The firmware uses this RGB LED to show status.
 This is useful for debugging.
-- blue single flash: wifi connected
-- blue double flash: wifi connectind station mode
-- blue triple flash: wifi connecting access point
-- green single flash: canbus heartbeat
-- green double flash: canbus no heartbeat
-- white single flash: websocket connected
-- white double flash: websocket not connected
 
-In normal operation there will be single flashes of blue, white, green.
-Multiple flashes of a particular color indicate an issue with the respective service.
+In normal operation there will be sequential single flashes of blue, white, green.
+Multiple flashes of a particular color indicates an issue with the respective service.
 
-> Tip: green double flash - you need to open with a browser
+### Blue - WiFi
+- single flash: wifi connected
+- double flash: wifi connectind station mode
+- triple flash: wifi connecting access point
+
+### Green - CAN bus
+- single flash: canbus heartbeat
+- double flash: canbus no heartbeat
+
+### White - websocket
+- single flash: websocket connected
+- double flash: websocket not connected
+
+> Tip: white double flash - you need to open with a browser
 
 ## Notes
 
