@@ -136,13 +136,13 @@ void AppMcp25625::fuzzingFunction(TimerHandle_t xTimer) {
         return;
     }
     static CanFrame canFrame{
-        .identifier = 0x1,
+        .identifier = 0x181,
         .length = 8,
-        .data{},
+        .data{0x20,0x11,0x0},
         .extended = false,
         .remote = true,
     };
-    ESP_LOGD(TAG, "fuzzingFunction %lx", canFrame.identifier);
+    ESP_LOGI(TAG, "fuzzingFunction %lx", canFrame.identifier);
     self->mcp25625.transmitFrame(canFrame);
     canFrame.identifier += 1;
 }

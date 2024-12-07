@@ -14,7 +14,7 @@ table td {
     border-collapse: collapse;
     font-family:'Courier New', Courier, monospace;
 }
-td.code, td.period {
+td.count, td.code, td.period {
     text-align: right;
 }
 .panel {
