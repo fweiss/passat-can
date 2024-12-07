@@ -132,7 +132,7 @@ void AppMcp25625::canStatusFunction(TimerHandle_t xTimer) {
 void AppMcp25625::fuzzingFunction(TimerHandle_t xTimer) {
     AppMcp25625 *self = static_cast<AppMcp25625*>(pvTimerGetTimerID(xTimer));
     if (self == nullptr) {
-        ESP_LOGE(TAG, "fuzzingFunction: self is null");
+        ESP_DRAM_LOGE(TAG, "fuzzingFunction: self is null");
         return;
     }
     static CanFrame canFrame{
@@ -140,11 +140,11 @@ void AppMcp25625::fuzzingFunction(TimerHandle_t xTimer) {
         .length = 8,
         .data{0x20,0x11,0x0},
         .extended = false,
-        .remote = true,
+        .remote = false,
     };
-    ESP_LOGI(TAG, "fuzzingFunction %lx", canFrame.identifier);
+    ESP_DRAM_LOGI(TAG, "fuzzingFunction %lx", canFrame.identifier);
     self->mcp25625.transmitFrame(canFrame);
-    canFrame.identifier += 1;
+    // canFrame.identifier += 1;
 }
 
 void AppMcp25625::canReceiveFrameTaskFunction(void * pvParameters) {
