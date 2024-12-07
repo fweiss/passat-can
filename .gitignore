@@ -5,4 +5,4 @@
 .vscode/ipch
 src/local.h
 extra_configs
-
+sdkconfig.esp32-s3-devkit
