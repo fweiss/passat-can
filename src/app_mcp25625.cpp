@@ -22,7 +22,6 @@ void AppMcp25625::initBridge() {
     const bool autoReload = false;
     heartbeatTimer = xTimerCreate("can heartbeat", timerPeriod, autoReload, nullptr, heartbeatFunction);
     canStatusTimer = xTimerCreate("can status", timerPeriod, true, (void*)this, canStatusFunction);
-    fuzzingTimer = xTimerCreate("can fuzzing", pdMS_TO_TICKS(100), true, (void*)this, fuzzingFunction);
     fuzzerTask = new Fuzzer(&mcp25625);
 
     // todo check error
@@ -51,8 +50,6 @@ void AppMcp25625::startBridge() {
             .extended = false,
             .remote = true,
         };   
-        // mcp25625.transmitFrame(frame);
-        // xTimerStart(this->fuzzingTimer, 100);
     };
     
     mcp25625.attachInterrupt();
@@ -129,32 +126,6 @@ void AppMcp25625::canStatusFunction(TimerHandle_t xTimer) {
         const int length = 5 + 5;
         self->httpServer.sendFrame(data, length);
     }
-}
-
-void AppMcp25625::fuzzingFunction(TimerHandle_t xTimer) {
-    AppMcp25625 *self = static_cast<AppMcp25625*>(pvTimerGetTimerID(xTimer));
-    if (self == nullptr) {
-        ESP_DRAM_LOGE(TAG, "fuzzingFunction: self is null");
-        return;
-    }
-    // 0x181 window 
-    static CanFrame canFrame{
-        .identifier = 0x181,
-        .length = 3,
-        // .data{0x20,0x11,0x0},
-        .data{0x80,0x44,0x0},
-        .extended = false,
-        .remote = false,
-    };
-    ESP_DRAM_LOGI(TAG, "fuzzingFunction %lx", canFrame.identifier);
-    self->mcp25625.transmitFrame(canFrame);
-    canFrame.identifier += 1;
-
-    // uint8_t ctrl;
-    // self->mcp25625.readRegister(MCP25625::reg::TXB0CTRL, ctrl);
-    // uint8_t eflg;
-    // self->mcp25625.readRegister(MCP25625::reg::EFLG, eflg);
-    // ESP_DRAM_LOGI(TAG, "TXB0CTRL %x", eflg);
 }
 
 void AppMcp25625::canReceiveFrameTaskFunction(void * pvParameters) {

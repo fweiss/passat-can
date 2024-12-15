@@ -32,7 +32,5 @@ private:
     TimerHandle_t canStatusTimer;
     static void canStatusFunction(TimerHandle_t xTimer);
 
-    static void fuzzingFunction(TimerHandle_t xTimer);
-    TimerHandle_t fuzzingTimer;
     Fuzzer *fuzzerTask;
 };
