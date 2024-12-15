@@ -2,6 +2,7 @@
 
 #include "app.h"
 #include "mcp25625.h"
+#include "fuzzer.hpp"
 
 class AppMcp25625 : public App {
 public:
@@ -33,4 +34,5 @@ private:
 
     static void fuzzingFunction(TimerHandle_t xTimer);
     TimerHandle_t fuzzingTimer;
+    Fuzzer *fuzzerTask;
 };
