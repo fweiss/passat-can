@@ -23,7 +23,7 @@ void AppMcp25625::initBridge() {
     heartbeatTimer = xTimerCreate("can heartbeat", timerPeriod, autoReload, nullptr, heartbeatFunction);
     canStatusTimer = xTimerCreate("can status", timerPeriod, true, (void*)this, canStatusFunction);
     fuzzingTimer = xTimerCreate("can fuzzing", pdMS_TO_TICKS(100), true, (void*)this, fuzzingFunction);
-    fuzzerTask = new Fuzzer();
+    fuzzerTask = new Fuzzer(&mcp25625);
 
     // todo check error
     // xTaskCreatePinnedToCore(canReceiveFrameTaskFunction, "can receive task", 2048, (void*)this, 1, &canReceiveFrameTask, APP_CPU_NUM);
@@ -52,7 +52,7 @@ void AppMcp25625::startBridge() {
             .remote = true,
         };   
         // mcp25625.transmitFrame(frame);
-        xTimerStart(this->fuzzingTimer, 100);
+        // xTimerStart(this->fuzzingTimer, 100);
     };
     
     mcp25625.attachInterrupt();
