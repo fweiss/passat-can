@@ -70,15 +70,8 @@ public:
 
     void getStatus(CanStatus &canStatus);
     void getStatus(CanStatus &canStatus, InterruptFlagsBuffer&interruptFlagsBuffer);
-private:
 
-    void readFrameBuffer(FrameBuffer &frameBuffer);
-    void writeFrameBuffer(FrameBuffer &frameBuffer);
-
-    intr_handle_t receiveInterruptHandle;
-    static void receiveMessageTask(void * pvParameters);
-
-    // mcp25625 register address enumeration
+        // mcp25625 register address enumeration
     enum reg {
         CANCTRL = 0x0f,
         CANSTAT = 0x0e,
@@ -104,6 +97,14 @@ private:
         RXM0SIDH = 0x20,
         RXM0SIDL = 0x21,
     };
+private:
+
+    void readFrameBuffer(FrameBuffer &frameBuffer);
+    void writeFrameBuffer(FrameBuffer &frameBuffer);
+
+    intr_handle_t receiveInterruptHandle;
+    static void receiveMessageTask(void * pvParameters);
+
     void timing();
 
     static SemaphoreHandle_t interruptSemaphore;

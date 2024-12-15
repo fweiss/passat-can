@@ -136,3 +136,5 @@ Basics of VW CAN bus system
 http://www.volkspage.net/technik/ssp/ssp/SSP_238.pdf
 
 [MCP25625 Datasheet](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/MCP25625-CAN-Controller-Data-Sheet-20005282C.pdf)
+
+[CAN messaged related to door windows](https://www.vwvortex.com/threads/can-bus-signal-reference-thread.7265914/)
