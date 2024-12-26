@@ -1,6 +1,14 @@
 # Door ECM
 Information about connecting the door control module
 
+## Module identification
+- 5Q0 959 592 D
+- HW REF 5Q0 959 592 B
+- marked LL andf RL, but not sure what that means
+- some parts say front right
+- handwritten B8/8 PK
+- purchased $14.75 + S&H Nov 18, 2023 on Ebay
+
 ## Receive
 When the module is powered up it emits some frames for five seconds.
 The CAN bus is at 500 kbps.
@@ -91,3 +99,5 @@ P-23 heckdeckelentriegelung
 
 ## Links and References
 [Supplier of industrial CAN modules](https://www.ametekvis.com/products/can-control-modules)
+
+[Passat B8 Wiring Diagrams](https://www.scribd.com/document/431058825/Vw-Passat-b8-Wiring-Diagrams-Eng)
