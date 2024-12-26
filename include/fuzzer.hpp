@@ -9,6 +9,8 @@ public:
     Fuzzer(MCP25625 *mcp25625);
     virtual ~Fuzzer();
 
+    static const uint32_t periodMillis = 100;
+
     void start();
     void stop();
 
