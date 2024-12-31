@@ -28,8 +28,8 @@ void Fuzzer::taskFunction(void* pvParameters) {
     }
     Fuzzer* fuzzer = (Fuzzer*)pvParameters;
     while (true) {
-        fuzzer->fuzzingFunction();
         vTaskDelay(periodMillis / portTICK_PERIOD_MS);
+        fuzzer->fuzzingFunction();
     }
 }
 

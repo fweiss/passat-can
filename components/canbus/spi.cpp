@@ -68,7 +68,7 @@ void SPI::deinit() {
 
 void SPI::readRegister(uint8_t const address, uint8_t & value) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "transactionMutex timeout");
+        ESP_LOGE(TAG, "readRegister transactionMutex timeout");
         return;
     }
 
@@ -90,7 +90,7 @@ void SPI::readRegister(uint8_t const address, uint8_t & value) {
 
 void SPI::writeRegister(uint8_t const address, uint8_t const value) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "transactionMutex timeout");
+        ESP_LOGE(TAG, "writeRegister transactionMutex timeout");
         return;
     }
 
@@ -112,7 +112,7 @@ void SPI::writeRegister(uint8_t const address, uint8_t const value) {
 
 void SPI::bitModifyRegister(uint8_t const address, uint8_t const mask, uint8_t value) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "transactionMutex timeout");
+        ESP_LOGE(TAG, "bitModifyRegister transactionMutex timeout");
         return;
     }
 
@@ -139,7 +139,7 @@ void SPI::bitModifyRegister(uint8_t address, FieldValue f) {
 
 void SPI::reset() {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "transactionMutex timeout");
+        ESP_LOGE(TAG, "reset transactionMutex timeout");
         return;
     }
 
@@ -162,7 +162,7 @@ void SPI::reset() {
 
 void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "read transactionMutex timeout");
+        ESP_LOGE(TAG, "readArrayRegisters transactionMutex timeout");
         return;
     }
 
@@ -185,7 +185,7 @@ void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count
 
 void SPI::readBufferRegisters(uint8_t rxBufferIndex, uint8_t * data, uint8_t count) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "read transactionMutex timeout");
+        ESP_LOGE(TAG, "readBufferRegisters transactionMutex timeout");
         return;
     }
 
@@ -208,7 +208,7 @@ void SPI::readBufferRegisters(uint8_t rxBufferIndex, uint8_t * data, uint8_t cou
 
 void SPI::writeArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "write transactionMutex timeout");
+        ESP_LOGE(TAG, "writeArrayRegisters transactionMutex timeout");
         return;
     }
 
