@@ -21,7 +21,14 @@ The CAN bus is at 500 kbps.
 
 > The "E" flag indicates an extended, 29-bit frame ID (CAN 2.0B)
 
-# door control hardware
+## door control hardware
+There are 6 logic chips:
+- NEC EX2-N15: DPDT relay for regulator motor
+- STL99PM626XP: power management with LIN and high-speed CAN
+- ST 2904 GZ404: dual op-amp? maybe pinch detection
+- NEC/Renesas 70f3624: MCU
+- ST L99DZ70XP: 6-bridge driver for door lock, mirror motors
+- TI CM0510B: 8-channel analog mux/demux, switches?
 
 ## NEC EX2-N15
 relay
@@ -51,18 +58,35 @@ maybe for "pinch" detection
 Door actuator driver with 6 bridges for double door lock control, mirror fold and mirror axis control, highside driver for mirror
 SPI interface
 
-## 70f3624
+## MCU
+Renesas?
+70f3624
+1452EEC08
+(A)
+SGP
+
+NEC?
 Renesas [V850ES](https://www.renesas.com/us/en/document/mah/v850esfx3-user-manual-hardware?r=1055686) ?
 32 bit microcontroller
 with 2 CAN controllers
 
+from chatgpt:
+TXD (Transmit): Pin P1_6, IC 22 TXDD0
+RXD (Receive): Pin P1_7, IC 23 RXDD0
+[carpro tool programmer](https://carprotool.com/download/Pinouts/CarProTool%20Programmer/CPT%20NEC%20V850/NEC%20V850%2064%20PINs.PNG)
+
 ## TI CM051BQ
 CD405xB
 8 channel analog mux/demux ?
+There are pads for an extra one, maybe for the driver's side?
 
 ## connectors
 quick connect
 2.77 x 0.83 mm
+
+## Motors
+- 2016 Passat window regulator: 5-15 A
+- JGY-370: 12V45RPM 60-500 mA
 
 ## wiring
 see BCM.png
@@ -70,8 +94,8 @@ L to R
 
 ### S001 (6)
 (3) (6)
-3 - motor+
-6 - motor-
+3 - window regulator motor +
+6 - window regulator motor-
 
 ### S002 (20)
 (20) (19)
@@ -80,14 +104,36 @@ L to R
 20 - 31/B-
 19 - 30/B+
 18 - NC
-9 - NC
-P-10 LIN bus
-P-14 CANL
 P-15 CANH
+P-14 CANL
+13 - central locking motor
+12 - central locking safelock motor
+11 - common for 13, 12
+10 - ??? 250
+9 - NC
+6 - central locking switch
+5 - door contact switch
+P-10 LIN bus
 
 ### S003 (16)
 (16..9)
 (8..1)
+16 - side mirror position horizontal
+15 - heated exterior mirror
+14 - side mirror position com a
+13 - side mirror position vertical
+11 - turn signal repeater
+10 - side mirror fold-in motor
+9 - side mirror fold-in motor
+8 - side mirror motor horizontal
+7 - side mirror motor vertical
+6 - anti-dazzle exterior mirror -
+5 - side mirror motor com
+6 - anti-dazzle exterior mirror +
+4 - side mirror position com b
+3 - heated exterior mirror
+1 - entry light exterior mirror
+
 verstellmotor x3
 
 ### S004 (32)
@@ -96,8 +142,19 @@ bottom to top
 [16..1]
 taster
 P-23 heckdeckelentriegelung
+32 - window regulator switch
+28 - xxx
+16 - side door warning lamp
+13 - xxx interior locking button
+8 - door background lighting
+5 - interior door handle lamp (rhd)
+5 - gnd
+4 - window regulator lamp
+3 - interior door handle lamp (lhd)
 
 ## Links and References
 [Supplier of industrial CAN modules](https://www.ametekvis.com/products/can-control-modules)
 
 [Passat B8 Wiring Diagrams](https://www.scribd.com/document/431058825/Vw-Passat-b8-Wiring-Diagrams-Eng)
+
+[downloaded]()
