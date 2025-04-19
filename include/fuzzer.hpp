@@ -10,6 +10,7 @@ public:
     virtual ~Fuzzer();
 
     const uint32_t periodMillis;
+    uint32_t runningIdentifier;
 
     void start();
     void stop();

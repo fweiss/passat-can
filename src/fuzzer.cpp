@@ -33,6 +33,14 @@ void Fuzzer::taskFunction(void* pvParameters) {
     }
 }
 
+static CanFrame canFrameRTR{
+    .identifier = 0xdd, //0x181,
+    .length = 0,
+    .data{},
+    .extended = false,
+    .remote = true,
+};
+
 void Fuzzer::fuzzingFunction() {
     // 0x181 window 
     static CanFrame canFrame{
@@ -44,10 +52,12 @@ void Fuzzer::fuzzingFunction() {
         .extended = false,
         .remote = false,
     };
+    CanFrame &transmitFrame = canFrame;
     // ESP_DRAM_LOGI(TAG, "fuzzingFunction %lx", canFrame.identifier);
-    mcp25625->transmitFrame(canFrame);
-    // canFrame.identifier += 1;
+    // transmitFrame.identifier = runningIdentifier++;
+    mcp25625->transmitFrame(transmitFrame);
 
+    // todo move to mcp25625
     const uint8_t TXREQ = 0x08;
     const uint8_t ABRT= 0x40;
     const uint8_t TXERR = 0x10;
@@ -67,7 +77,7 @@ void Fuzzer::fuzzingFunction() {
 
     // const uint8_t TXERR = 0x10;
     if (ctrl & 0xff || true) {
-        ESP_DRAM_LOGI(TAG, "after TXREQ polling: TXB0CTRL: %x TEC: %d", ctrl, tec);
+        ESP_DRAM_LOGI(TAG, "id: 0x%x TXB0CTRL: 0x%x TEC: %d", transmitFrame.identifier, ctrl, tec);
     }
 
     // // wait send TXREQ == 0 (TX0, TX1, TX2)
