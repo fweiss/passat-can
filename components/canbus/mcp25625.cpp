@@ -217,7 +217,7 @@ void MCP25625::transmitFrame(CanFrame &canFrame) {
 
     // bitModifyRegister(reg::CANINTE, 0x80, 0x80); // MERRE
     // frame is repeated until TXREQ is cleared
-    bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // OSM one shot mode
+    // bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // OSM one shot mode
     bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq
 }
 

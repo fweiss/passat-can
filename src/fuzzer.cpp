@@ -3,7 +3,7 @@
 
 static const char TAG[] = "Fuzzer";
 
-Fuzzer::Fuzzer(MCP25625 *mcp25625) : mcp25625(mcp25625) {
+Fuzzer::Fuzzer(MCP25625 *mcp25625) : periodMillis(2000), mcp25625(mcp25625) {
     UBaseType_t priority = 1;
     xTaskCreatePinnedToCore(taskFunction, "can fuzzing task", 4096, (void*)this, priority, &taskHandle, APP_CPU_NUM);
 }
@@ -28,7 +28,7 @@ void Fuzzer::taskFunction(void* pvParameters) {
     }
     Fuzzer* fuzzer = (Fuzzer*)pvParameters;
     while (true) {
-        vTaskDelay(periodMillis / portTICK_PERIOD_MS);
+        vTaskDelay(fuzzer->periodMillis / portTICK_PERIOD_MS);
         fuzzer->fuzzingFunction();
     }
 }
@@ -44,10 +44,17 @@ void Fuzzer::fuzzingFunction() {
         .extended = false,
         .remote = false,
     };
-    ESP_DRAM_LOGI(TAG, "fuzzingFunction %lx", canFrame.identifier);
+    // ESP_DRAM_LOGI(TAG, "fuzzingFunction %lx", canFrame.identifier);
     mcp25625->transmitFrame(canFrame);
     // canFrame.identifier += 1;
 
+    const uint8_t TXREQ = 0x08;
+    const uint8_t ABRT= 0x40;
+    const uint8_t TXERR = 0x10;
+    const uint8_t MLOA = 0x20;
+
+    // wait until TXREQ == 0
+    // todo also ABRT, TXERR, MLOA
     uint8_t ctrl;
     while(true) {
         mcp25625->readRegister(MCP25625::reg::TXB0CTRL, ctrl);
@@ -55,9 +62,12 @@ void Fuzzer::fuzzingFunction() {
             break;
         }
     }
-    const uint8_t TXERR = 0x10;
-    if (ctrl & 0xff) {
-        ESP_DRAM_LOGI(TAG, "TXB0CTRL %x", ctrl);
+    uint8_t tec;
+    mcp25625->readRegister(MCP25625::reg::TEC, tec);
+
+    // const uint8_t TXERR = 0x10;
+    if (ctrl & 0xff || true) {
+        ESP_DRAM_LOGI(TAG, "after TXREQ polling: TXB0CTRL: %x TEC: %d", ctrl, tec);
     }
 
     // // wait send TXREQ == 0 (TX0, TX1, TX2)

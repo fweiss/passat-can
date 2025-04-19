@@ -9,7 +9,7 @@ public:
     Fuzzer(MCP25625 *mcp25625);
     virtual ~Fuzzer();
 
-    static const uint32_t periodMillis = 1000;
+    const uint32_t periodMillis;
 
     void start();
     void stop();
