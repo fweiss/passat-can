@@ -140,3 +140,5 @@ http://www.volkspage.net/technik/ssp/ssp/SSP_238.pdf
 [CAN messaged related to door windows](https://www.vwvortex.com/threads/can-bus-signal-reference-thread.7265914/)
 
 [Python API](https://github.com/commaai/opendbc)
+
+[Database of CAN resources](https://github.com/iDoka/awesome-canbus)
