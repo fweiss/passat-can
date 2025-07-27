@@ -59,11 +59,11 @@ Door actuator driver with 6 bridges for double door lock control, mirror fold an
 SPI interface
 
 ## MCU
-Renesas?
-70f3624
-1452EEC08
-(A)
-SGP
+- Renesas?
+- 70f3624
+- 1452EEC08
+- (A)
+- SGP
 
 NEC?
 Renesas [V850ES](https://www.renesas.com/us/en/document/mah/v850esfx3-user-manual-hardware?r=1055686) ?
@@ -94,63 +94,63 @@ L to R
 
 ### S001 (6)
 (3) (6)
-3 - window regulator motor +
-6 - window regulator motor-
+- 3 - window regulator motor +
+- 6 - window regulator motor-
 
 ### S002 (20)
-(20) (19)
-(18..10)
-(9..1) edge
-20 - 31/B-
-19 - 30/B+
-18 - NC
-P-15 CANH
-P-14 CANL
-13 - central locking motor
-12 - central locking safelock motor
-11 - common for 13, 12
-10 - ??? 250
-9 - NC
-6 - central locking switch
-5 - door contact switch
-P-10 LIN bus
+- (20) (19)
+- (18..10)
+- (9..1) edge
+- 20 - 31/B-
+- 19 - 30/B+
+- 18 - NC
+- P-15 CANH
+- P-14 CANL
+- 13 - central locking motor
+- 12 - central locking safelock motor
+- 11 - common for 13, 12
+- 10 - ??? 250
+- 9 - NC
+- 6 - central locking switch
+- 5 - door contact switch
+- P-10 LIN bus
 
 ### S003 (16)
-(16..9)
-(8..1)
-16 - side mirror position horizontal
-15 - heated exterior mirror
-14 - side mirror position com a
-13 - side mirror position vertical
-11 - turn signal repeater
-10 - side mirror fold-in motor
-9 - side mirror fold-in motor
-8 - side mirror motor horizontal
-7 - side mirror motor vertical
-6 - anti-dazzle exterior mirror -
-5 - side mirror motor com
-6 - anti-dazzle exterior mirror +
-4 - side mirror position com b
-3 - heated exterior mirror
-1 - entry light exterior mirror
+- (16..9)
+- (8..1)
+- 16 - side mirror position horizontal
+- 15 - heated exterior mirror
+- 14 - side mirror position com a
+- 13 - side mirror position vertical
+- 11 - turn signal repeater
+- 10 - side mirror fold-in motor
+- 9 - side mirror fold-in motor
+- 8 - side mirror motor horizontal
+- 7 - side mirror motor vertical
+- 6 - anti-dazzle exterior mirror -
+- 5 - side mirror motor com
+- 6 - anti-dazzle exterior mirror +
+- 4 - side mirror position com b
+- 3 - heated exterior mirror
+- 1 - entry light exterior mirror
 
 verstellmotor x3
 
 ### S004 (32)
-bottom to top
-[32..17]
-[16..1]
-taster
-P-23 heckdeckelentriegelung
-32 - window regulator switch
-28 - xxx
-16 - side door warning lamp
-13 - xxx interior locking button
-8 - door background lighting
-5 - interior door handle lamp (rhd)
-5 - gnd
-4 - window regulator lamp
-3 - interior door handle lamp (lhd)
+- bottom to top
+- [32..17]
+- [16..1]
+- taster
+- P-23 heckdeckelentriegelung
+- 32 - window regulator switch
+- 28 - xxx
+- 16 - side door warning lamp
+- 13 - xxx interior locking button
+- 8 - door background lighting
+- 5 - interior door handle lamp (rhd)
+- 5 - gnd
+- 4 - window regulator lamp
+- 3 - interior door handle lamp (lhd)
 
 ## Links and References
 [Supplier of industrial CAN modules](https://www.ametekvis.com/products/can-control-modules)
