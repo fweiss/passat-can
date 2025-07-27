@@ -9,6 +9,8 @@ https://www.csselectronics.com/pages/j1939-explained-simple-intro-tutorial
 
 [How to query ECUs on VW](https://forum.macchina.cc/t/how-to-read-vw-can-bus/655)
 
+[Assorted CAN and CAN-related Reference Posters](https://www.vector.com/us/en/company/get-info/order-info-material/posters/)
+
 Fram a chatGPT query:
 - engine speed
 - from ECM
