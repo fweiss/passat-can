@@ -9,6 +9,12 @@ Information about connecting the door control module
 - handwritten B8/8 PK
 - purchased $14.75 + S&H Nov 18, 2023 on Ebay
 
+Other callouts on wiring diagrams:
+- J386 Driver DCU
+- J387 Front Passenger Door Door Control Unit
+
+> The one I got appears to be J387?
+
 ## Receive
 When the module is powered up it emits some frames for five seconds.
 The CAN bus is at 500 kbps.
@@ -21,7 +27,7 @@ The CAN bus is at 500 kbps.
 
 > The "E" flag indicates an extended, 29-bit frame ID (CAN 2.0B)
 
-## door control hardware
+## Door control hardware
 There are 6 logic chips:
 - NEC EX2-N15: DPDT relay for regulator motor
 - STL99PM626XP: power management with LIN and high-speed CAN
@@ -30,7 +36,7 @@ There are 6 logic chips:
 - ST L99DZ70XP: 6-bridge driver for door lock, mirror motors
 - TI CM0510B: 8-channel analog mux/demux, switches?
 
-## NEC EX2-N15
+### NEC EX2-N15
 relay
 2 x SPDT
 so can function as DPDT
@@ -40,7 +46,7 @@ contacts around 30 A, 4 mOhm
 
 coil 160 ohm, ~75 mA
 
-## STL99PM626XP
+### STL99PM626XP
 power management with LIN and high-speed CAN
 
 uses SPI interface.
@@ -50,15 +56,15 @@ Indeed, they are the REL1 and REL2 signals, low-side driver output 2 ohm.
 Looks like up to 200 mA.
 Control register 1, bit 6, 7.
 
-## ST GZ505
+### ST GZ505
 dual op amp ?
 maybe for "pinch" detection
 
-## ST L99DZ70XP
+### ST L99DZ70XP
 Door actuator driver with 6 bridges for double door lock control, mirror fold and mirror axis control, highside driver for mirror
 SPI interface
 
-## MCU
+### MCU
 - Renesas?
 - 70f3624
 - 1452EEC08
@@ -75,27 +81,43 @@ TXD (Transmit): Pin P1_6, IC 22 TXDD0
 RXD (Receive): Pin P1_7, IC 23 RXDD0
 [carpro tool programmer](https://carprotool.com/download/Pinouts/CarProTool%20Programmer/CPT%20NEC%20V850/NEC%20V850%2064%20PINs.PNG)
 
-## TI CM051BQ
+### TI CM051BQ
 CD405xB
 8 channel analog mux/demux ?
 There are pads for an extra one, maybe for the driver's side?
 
-## connectors
+## Connectors
 quick connect
 2.77 x 0.83 mm
+
+### Connector Layout
+The PCB is unmarked, so this chart serves to identify the connectors.
+
+```
+                               +-------+
+                               | T32   |
+                               +-------+
+                               | 17  1 |
++-----+------------------+-----+  ...  |
+| T6s | T20              | T16 |  ...  |
++-----+------------------+-----+  ...  |
+|     | 20 19  18 ... 10 |     |  ...  |
+|     |         9 ...  1 |     | 32 16 |
++-----+------------------+ ----+-------+
+```
 
 ## Motors
 - 2016 Passat window regulator: 5-15 A
 - JGY-370: 12V45RPM 60-500 mA
 
-## wiring
+## Signal wiring
 see BCM.png
 L to R
 
 ### S001 (6)
 (3) (6)
-- 3 - window regulator motor +
-- 6 - window regulator motor-
+- 3 - left window regulator motor +
+- 6 - left window regulator motor-
 
 ### S002 (20)
 - (20) (19)
