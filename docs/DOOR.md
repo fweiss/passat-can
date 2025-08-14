@@ -105,6 +105,7 @@ The PCB is unmarked, so this chart serves to identify the connectors.
 |     |         9 ...  1 |     | 32 16 |
 +-----+------------------+ ----+-------+
 ```
+> T20-9 and T20-18 are blank
 
 ## Motors
 - 2016 Passat window regulator: 5-15 A
@@ -133,6 +134,7 @@ L to R
 - 11 - common for 13, 12
 - 10 - ??? 250
 - 9 - NC
+- 7 - GND/B-
 - 6 - central locking switch
 - 5 - door contact switch
 - P-10 LIN bus

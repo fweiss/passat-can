@@ -1,13 +1,15 @@
 # Passat CAN
 A little project to create a CAN Bus device that uses a web socket UI
 
+> Techincal details are in the ``docs`` directory.
+
 ## Overview
 Hardware components:
 - ESP32-S3 devkit (other ESP32 boards will work)
 - MicroElekto MCP25624 click breakout board
 - currently assembled on 300 x 14 wireless breadboard
 - wireless LAN or smartphone
-> See HARDWARE.md for details
+> See docs/HARDWARE.md for details
 
 Software components:
 - Visual Studio Code with PlatformIO extension
@@ -29,6 +31,8 @@ This information is not stored in the repository for security reasons.
 - create a gitignored file ``src/local.h``
 - follow the instructions in ``include/wifi.h``
 - rebuild and flash the firmware
+
+> Open the web page at ``http://espressif/``. Magically, the ESP32 does DNS!
 
 ### Access point mode
 Access point mode is available so connection can be made without connecting to an existing Wifi network.
