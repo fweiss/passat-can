@@ -3,7 +3,7 @@
 
 static const char TAG[] = "Fuzzer";
 
-Fuzzer::Fuzzer(MCP25625 *mcp25625) : periodMillis(2000), mcp25625(mcp25625) {
+Fuzzer::Fuzzer(MCP25625 *mcp25625) : periodMillis(100), mcp25625(mcp25625) {
     UBaseType_t priority = 1;
     xTaskCreatePinnedToCore(taskFunction, "can fuzzing task", 4096, (void*)this, priority, &taskHandle, APP_CPU_NUM);
 }
