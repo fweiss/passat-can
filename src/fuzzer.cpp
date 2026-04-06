@@ -1,3 +1,4 @@
+#define LOG_LOCAL_LEVEL ESP_LOG_WARN
 #include "fuzzer.hpp"
 #include "esp_log.h"
 
@@ -77,7 +78,7 @@ void Fuzzer::fuzzingFunction() {
 
     // const uint8_t TXERR = 0x10;
     if (ctrl & 0xff || true) {
-        ESP_DRAM_LOGI(TAG, "id: 0x%x TXB0CTRL: 0x%x TEC: %d", transmitFrame.identifier, ctrl, tec);
+        ESP_DRAM_LOGI(TAG, "id: 0x%x TXB0CTRLx: 0x%x TEC: %d", transmitFrame.identifier, ctrl, tec);
     }
 
     // // wait send TXREQ == 0 (TX0, TX1, TX2)
