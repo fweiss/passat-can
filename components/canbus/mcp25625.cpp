@@ -312,75 +312,75 @@ void MCP25625::interruptTask(void * pvParameters) {
                 break;
             }
 
-        // const timestamp_t timestamp = esp_log_timestamp();
-        // const uint8_t icod = getIcod();
-        const uint16_t ticksToWait = 1000;
-        CanStatus canStatus;
-        ESP_LOGD(TAG, "interrupt %d", icod);
-        switch (icod) { // [Register 4.35]
-            case 0: // 000 = MERR interrupt
-                // self->getStatus(canStatus,interruptFlagsBuffer);
-                // canStatus.icod = icod + 0x80;
-                // ESP_LOGD(TAG, "MERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
-                //     canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+            // const timestamp_t timestamp = esp_log_timestamp();
+            // const uint8_t icod = getIcod();
+            const uint16_t ticksToWait = 1000;
+            CanStatus canStatus;
+            ESP_LOGD(TAG, "interrupt %d", icod);
+            switch (icod) { // [Register 4.35]
+                case 0: // 000 = MERR interrupt
+                    // self->getStatus(canStatus,interruptFlagsBuffer);
+                    // canStatus.icod = icod + 0x80;
+                    // ESP_LOGD(TAG, "MERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
+                    //     canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
 
-                // // canStatus = self->getStatus();
-                // xQueueSend(self->errorQueue, &canStatus, ticksToWait);
+                    // // canStatus = self->getStatus();
+                    // xQueueSend(self->errorQueue, &canStatus, ticksToWait);
 
-                self->bitModifyRegister(reg::TXB0CTRL, 0x08, 0x00); // TXREQ
-                self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
-                break;
-            case 0x01: // 001 = ERR interrupt
-                // EFLG indicates: RX1OVR, RX0OVR, TXBO, TXEP, RXEP, TXWAR, RXWAR, EWARN
-                self->getStatus(canStatus,interruptFlagsBuffer);
-                canStatus.icod = icod;
-                ESP_LOGD(TAG, "ERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
-                    canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
+                    self->bitModifyRegister(reg::TXB0CTRL, 0x08, 0x00); // TXREQ
+                    self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
+                    break;
+                case 0x01: // 001 = ERR interrupt
+                    // EFLG indicates: RX1OVR, RX0OVR, TXBO, TXEP, RXEP, TXWAR, RXWAR, EWARN
+                    self->getStatus(canStatus,interruptFlagsBuffer);
+                    canStatus.icod = icod;
+                    ESP_LOGD(TAG, "ERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
+                        canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
 
-                // canStatus = self->getStatus();
-                xQueueSend(self->errorQueue, &canStatus, ticksToWait);
+                    // canStatus = self->getStatus();
+                    xQueueSend(self->errorQueue, &canStatus, ticksToWait);
 
-                // self->bitModifyRegister(reg::CANINTF, 0x20, 0x00); // ERRIF
-                // self->bitModifyRegister(reg::EFLG, 0x40, 0x00); // WAKIF
-                self->bitModifyRegister(reg::EFLG, 0xC0, 0x00); // RX1OVR, RX0OVR
-                self->bitModifyRegister(reg::CANINTF, 0x20, 0x00); // ERRIF
-                break;
-            case 0x03: // 011 = TXB0 interrupt
-            case 0x04: // 100 = TXB1 interrupt
-                ESP_LOGD(TAG, "TXB0 interrupt");
+                    // self->bitModifyRegister(reg::CANINTF, 0x20, 0x00); // ERRIF
+                    // self->bitModifyRegister(reg::EFLG, 0x40, 0x00); // WAKIF
+                    self->bitModifyRegister(reg::EFLG, 0xC0, 0x00); // RX1OVR, RX0OVR
+                    self->bitModifyRegister(reg::CANINTF, 0x20, 0x00); // ERRIF
+                    break;
+                case 0x03: // 011 = TXB0 interrupt
+                case 0x04: // 100 = TXB1 interrupt
+                    ESP_LOGD(TAG, "TXB0 interrupt");
 
-                self->getStatus(canStatus,interruptFlagsBuffer);
-                canStatus.icod = icod;
+                    self->getStatus(canStatus,interruptFlagsBuffer);
+                    canStatus.icod = icod;
 
-                xQueueSend(self->transmitFrameQueue, &canStatus, ticksToWait);
+                    xQueueSend(self->transmitFrameQueue, &canStatus, ticksToWait);
 
-                self->bitModifyRegister(reg::CANINTF, 0x04, 0x00); // clear tx0if
-                // self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
-                break;
-            case 0x06: // 110 = RXB0 interrupt
-            {
-                ESP_LOGD(TAG, "RXB0 interrupt");
-                FrameBuffer frameBuffer;
-                self->readFrameBuffer(frameBuffer);
-                // self->bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rx0if
+                    self->bitModifyRegister(reg::CANINTF, 0x04, 0x00); // clear tx0if
+                    // self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
+                    break;
+                case 0x06: // 110 = RXB0 interrupt
+                {
+                    ESP_LOGD(TAG, "RXB0 interrupt");
+                    FrameBuffer frameBuffer;
+                    self->readFrameBuffer(frameBuffer);
+                    // self->bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rx0if
 
-                // see receiveMessage()
-                receive_msg_t message;
-                FrameBuffer & buf = frameBuffer;
-                message.identifier = getIdentifier(buf.sidh, buf.sidl, buf.eid8, buf.eid0);
-                message.flags.srr = SRR::of(buf.sidl);
-                message.flags.ide = IDE::of(buf.sidl);
-                message.data_length_code = buf.dlc & 0x0f;
-                memcpy(message.data, buf.data, sizeof(buf.data));
+                    // see receiveMessage()
+                    receive_msg_t message;
+                    FrameBuffer & buf = frameBuffer;
+                    message.identifier = getIdentifier(buf.sidh, buf.sidl, buf.eid8, buf.eid0);
+                    message.flags.srr = SRR::of(buf.sidl);
+                    message.flags.ide = IDE::of(buf.sidl);
+                    message.data_length_code = buf.dlc & 0x0f;
+                    memcpy(message.data, buf.data, sizeof(buf.data));
 
-                xQueueSend(self->receiveMessageQueue, &message, ticksToWait);
-                // xQueueSend(self->receiveISRQueue, &timestamp, ticksToWait);
-                break;
+                    xQueueSend(self->receiveMessageQueue, &message, ticksToWait);
+                    // xQueueSend(self->receiveISRQueue, &timestamp, ticksToWait);
+                    break;
+                }
+                default:
+                    ESP_LOGE(TAG, "unhandled interrupt icod %d", icod);
+                    break;
             }
-            default:
-                ESP_LOGE(TAG, "unhandled interrupt icod %d", icod);
-                break;
-        }
         }
         // self->readRegister(reg::CANINTF, canStatus.canintf);
         // if (canStatus.canintf != 0) {
