@@ -330,7 +330,7 @@ void MCP25625::interruptTask(void * pvParameters) {
                     self->bitModifyRegister(reg::TXB0CTRL, 0x08, 0x00); // TXREQ
                     self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
                     break;
-                case 0x01: // 001 = ERR interrupt
+                case ICOD_ERR: // 001 = ERR interrupt
                     // EFLG indicates: RX1OVR, RX0OVR, TXBO, TXEP, RXEP, TXWAR, RXWAR, EWARN
                     self->getStatus(canStatus,interruptFlagsBuffer);
                     canStatus.icod = icod;

@@ -98,6 +98,18 @@ public:
         RXM0SIDL = 0x21,
     };
 private:
+    // interrupt codes in CANSTAT
+    enum icod {
+        ICOD_MERR = 0,
+        ICOD_ERR = 1,
+        ICOD_WAK = 2,
+        ICOD_TX0 = 3,
+        ICOD_TX1 = 4,
+        ICOD_TX2 = 5,
+        ICOD_RX0 = 6,
+        ICOD_RXB = 7,
+    };
+
 
     void readFrameBuffer(FrameBuffer &frameBuffer);
     void writeFrameBuffer(FrameBuffer &frameBuffer);
