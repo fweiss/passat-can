@@ -111,6 +111,9 @@ class WSConnection {
             clearInterval(this.reconnectInterval)
             this.socket.binaryType = 'arraybuffer'
 
+            this.socket.onerror = (event) => {
+                console.log('websocket error: ' + event)
+            }
             this.socket.onopen = (event) => {
                 console.log('websocket opened ' + Date())
                  $(this).trigger('status', [ this.socket.readyState ])
@@ -120,9 +123,6 @@ class WSConnection {
                 this.reconnectInterval = setInterval(() => {
                     this.reconnect()
                 }, 1000)        
-            }
-            this.socket.onerror = (event) => {
-                console.log('websocket error ' + Date())
             }
             this.socket.onmessage = (event) => {
                 this.onmessage(event.data)

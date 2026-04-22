@@ -2,6 +2,7 @@
 #include "indicator.h"
 #include "mcp25625.h"
 
+#define LOG_LOCAL_LEVEL ESP_LOG_INFO
 #include "esp_log.h"
 
 static const char TAG[] = "app-mcp25625";

@@ -4,9 +4,15 @@
 #include <unordered_map>
 
 #include "esp_system.h"
+
+#define LOG_LOCAL_LEVEL ESP_LOG_INFO
 #include "esp_log.h"
 #include "esp_http_server.h"
 #include "esp_spiffs.h"
+
+#include <unistd.h>
+#include <sys/socket.h>
+#include <lwip/sockets.h>
 
 char const * const TAG = "HTTP";
 
@@ -86,6 +92,7 @@ void HttpServer::start() {
     config.close_fn = [] (httpd_handle_t hd, int sockfd) { // httpd_close_func_t
         httpd_ws_client_info_t client_info = httpd_ws_get_fd_info(hd, sockfd);
         if (client_info == HTTPD_WS_CLIENT_WEBSOCKET) {
+            close(sockfd);
             ESP_LOGI(TAG, "websocket closed %d", sockfd);
             onConnectStatusChanged();
         }
@@ -207,9 +214,10 @@ esp_err_t HttpServer::handleWebsocketConnect(httpd_req_t * req) {
     // save socket descriptor for subsequent async sends
     socketFd = httpd_req_to_sockfd(req);
     ESP_LOGI(TAG, "websocket handshake opened %d", socketFd);
+    ESP_LOGI(TAG, "websocket handshake method %d", req->method);
     onConnectStatusChanged();
     // (void)xTimerStart(pingTimer, 0);
-    pingPong.start();
+    // pingPong.start();
     return ESP_OK;
 }
 
