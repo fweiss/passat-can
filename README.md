@@ -104,6 +104,12 @@ http_server(stopped, started, process_request, ws_connected, ws_receive_frame, w
 can_bus(stopped, started, receive_message, transmit_message)
 
 ## Links and references
+[Espressif ESP32-S3 Devkit](https://documentation.espressif.com/esp32-s3_datasheet_en.pdf)
+
+[Mikroe MCP25625 Click](https://www.mikroe.com/mcp25625-click)
+
+[MCP25625 Datasheet](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/MCP25625-CAN-Controller-Data-Sheet-20005282C.pdf)
+
 A little Arduino-based project: https://www.youtube.com/watch?v=_Ajn560TLIo
 
 A nice project similar to mine: https://github.com/MagnusThome/RejsaCAN-ESP32
@@ -138,8 +144,6 @@ https://forum.macchina.cc/t/how-to-read-vw-can-bus/655
 
 Basics of VW CAN bus system
 http://www.volkspage.net/technik/ssp/ssp/SSP_238.pdf
-
-[MCP25625 Datasheet](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/MCP25625-CAN-Controller-Data-Sheet-20005282C.pdf)
 
 [CAN messaged related to door windows](https://www.vwvortex.com/threads/can-bus-signal-reference-thread.7265914/)
 
