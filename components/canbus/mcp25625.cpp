@@ -237,7 +237,7 @@ void MCP25625::setFilter() {
 void MCP25625::getStatus(CanStatus &canStatus) {
     readRegister(reg::CANINTF, canStatus.canintf);
     readRegister(reg::CANINTE, canStatus.caninte);
-    readRegister(reg::TXB0CTRL, canStatus.tb0ctrl);
+    readRegister(reg::TXB0CTRL, canStatus.txb0ctrl);
     readRegister(reg::EFLG, canStatus.eflg);
     readRegister(reg::TEC, canStatus.tec);
 }
@@ -245,7 +245,7 @@ void MCP25625::getStatus(CanStatus &canStatus) {
 void MCP25625::getStatus(CanStatus &canStatus, InterruptFlagsBuffer &interruptFlagsBuffer) {
     // readRegister(reg::CANINTF, canStatus.canintf);
     // readRegister(reg::CANINTE, canStatus.caninte);
-    readRegister(reg::TXB0CTRL, canStatus.tb0ctrl);
+    readRegister(reg::TXB0CTRL, canStatus.txb0ctrl);
     // readRegister(reg::EFLG, canStatus.eflg);
     readRegister(reg::TEC, canStatus.tec);
     canStatus.canintf = interruptFlagsBuffer.canintf;

@@ -159,8 +159,8 @@ void AppMcp25625::canErrorTaskFunction(void * pvParameters) {
     while (true) {
         CanStatus canStatus;
         if (xQueueReceive(self->mcp25625.errorQueue, &canStatus, portMAX_DELAY)) {
-            ESP_LOGE(TAG, "error status canintf: %x caninte: %x eflg %x tec %d tboctrl %x icod %x", 
-                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec, canStatus.tb0ctrl, canStatus.icod);
+            ESP_LOGE(TAG, "error status canintf: %x caninte: %x eflg %x tec %d txb0ctrl %x icod %x", 
+                canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec, canStatus.txb0ctrl, canStatus.icod);
 
             // webSocketErrorFrame
             // webSocketFrameQueue

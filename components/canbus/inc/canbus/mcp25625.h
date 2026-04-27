@@ -24,7 +24,7 @@ struct CanStatus {
     uint8_t tec;
     uint8_t canintf;
     uint8_t caninte;
-    uint8_t tb0ctrl;
+    uint8_t txb0ctrl;
     uint8_t icod;
 };
 
