@@ -172,3 +172,34 @@ struct IDE : Field<1, 3> { // TXB0SIDL
         return (reg >> 3) & 0x01;
     }
 };
+
+// new model
+
+namespace mcp25625 {
+    namespace REGISTERS {
+        struct CANSTAT {
+            operator const uint8_t() { return 0x0e; };
+            enum class ICOD {
+                NONE =      0,
+                ERR =       1,
+                WAKEUP =    2,
+                TXB0 =      3,
+                TXB1 =      4,
+                TXB2 =      5,
+                RXB0 =      6,
+                RXB1 =      7,
+            } ;
+        };
+        struct CANINTF {
+            operator const uint8_t() { return 0x2c; };
+            static const uint8_t MERRF = 0x80;
+            static const uint8_t WAKIF = 0x40;
+            static const uint8_t ERRIF = 0x20;
+            static const uint8_t TX2IF = 0x10;
+            static const uint8_t TX1IF = 0x08;
+            static const uint8_t TX0IF = 0x04;
+            static const uint8_t RX1IF = 0x02;
+            static const uint8_t RX0IF = 0x01; 
+        };
+    }
+}

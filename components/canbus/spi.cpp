@@ -183,6 +183,7 @@ void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count
     xSemaphoreGive(transactionMutex);
 }
 
+// use SPI instructio that clears relevant flag in CANINTF
 void SPI::readBufferRegisters(uint8_t rxBufferIndex, uint8_t * data, uint8_t count) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
         ESP_LOGE(TAG, "readBufferRegisters transactionMutex timeout");

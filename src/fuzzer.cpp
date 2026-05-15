@@ -66,21 +66,7 @@ void Fuzzer::fuzzingFunction() {
 
     // wait until TXREQ == 0
     // todo also ABRT, TXERR, MLOA
-    uint8_t ctrl;
-    while(true) {
-        mcp25625->readRegister(MCP25625::reg::TXB0CTRL, ctrl);
-        if ((ctrl & 0x08) == 0) {
-            break;
-        }
-    }
-    uint8_t tec;
-    mcp25625->readRegister(MCP25625::reg::TEC, tec);
-
-    // const uint8_t TXERR = 0x10;
-    if (ctrl & 0xff || true) {
-        ESP_DRAM_LOGI(TAG, "id: 0x%x TXB0CTRLx: 0x%x TEC: %d", transmitFrame.identifier, ctrl, tec);
-    }
-
+    // this was to debug a CAN error?
     // // wait send TXREQ == 0 (TX0, TX1, TX2)
     // // read staus doesn't seem to work
     // while (true) {

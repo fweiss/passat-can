@@ -11,36 +11,38 @@
         </head>
     <body>
         <h1>Passat CAN</h1>
-        <div>
-            <input id="websocketstatus">
-            <label for="ws_status">Websocket status</label>
-        </div>
-        <div>
-            <input id="rate" type="text">
-            <span>frames per second</span>
-        </div>
-        <div>
-            <input id="rpm" type="range" min="0" max="6000" value="0">
+        <div class="panel">
+            <div>
+                <input id="websocketstatus">
+                <label for="ws_status">Websocket status</label>
+            </div>
+            <div>
+                <input id="rate" type="text">
+                <span>frames per second</span>
+            </div>
         </div>
         <div class="panel">
             <input name="id" type="text" placeholder="ID">
             <button id="send">Send</button>
             <button id="fuzzing">Start Fuzzing</button>
+            <input id="rpm" type="range" min="0" max="6000" value="0">
         </div>
         <div class="panel" id="status">
         </div>
-        <table id="frames">
-            <thead>
-                <tr>
-                    <th>Count</th>
-                    <th>Period</th>
-                    <th>ID</th>
-                    <th>Flags</th>
-                    <th>Data</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+        <div class="panel">
+            <table id="frames">
+                <thead>
+                    <tr>
+                        <th>Count</th>
+                        <th>Period</th>
+                        <th>ID</th>
+                        <th>Flags</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
     </body>
 </html>

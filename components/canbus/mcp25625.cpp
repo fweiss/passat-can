@@ -9,6 +9,8 @@
 
 static char const * const TAG = "mcp25625";
 
+using mcp25625::REGISTERS::CANINTF;
+
 // forward
 static uint32_t getIdentifier(uint8_t sidh, uint8_t sidl, uint8_t eid8, uint8_t eid0);
 
@@ -141,52 +143,6 @@ void MCP25625::writeFrameBuffer(FrameBuffer &frameBuffer) {
     writeArrayRegisters(TXB0SIDH, (uint8_t*)&frameBuffer, sizeof(frameBuffer));
 }
 
-// deprecated
-void MCP25625::sendMessage(uint8_t * payload, size_t len) {
-    ESP_LOGI(TAG, "send message");
-    struct alignas(32) buf {
-        // uint8_t ctrl;
-        uint8_t sidh; // sid[10:3]
-        uint8_t sidl; // sid[2:0] ide eid[17:16]
-        uint8_t eid8; // eid[15:8]
-        uint8_t eid0; // eid[7:0]
-        uint8_t dlc;    // rtr dlc[3:0]
-        uint8_t data[8];
-        uint8_t canstat; // operationmode, interrupr flags
-        uint8_t canctrl;
-    } buf;
-    memset(&buf, 0, sizeof(buf));
-
-    uint16_t sid = 0x0391;
-    buf.sidh = (sid >> 3) & 0xff;
-    buf.sidl = ((sid & 0x07) << 5);
-    // unsigned char comfortUp[3] = { 85,128,0 }; //put windows up
-    buf.dlc = 3;
-    buf.data[0] = 85;
-    buf.data[1] = 128;
-    buf.data[2] = 0;
-
-    bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
-    // caninte merre
-    // bitModifyRegister(reg::CANINTE, 0x54, 0x54); // TX0IE
-
-    // todo
-    // check if TXREQ is set
-    // check if TXB0CNTRL.TXREQ is set
-    // check if TXB0CNTRL.TXERR is set
-    // check if TXB0CNTRL.MLOA is set
-    // check if TXB0CNTRL.ABTF is set
-    // check if TXB0CNTRL.TXERR
-
-    // TXBxDn: TRANSMIT BUFFER x DATA BYTE n REGISTER
-    // (ADDRESS: 36h-3Dh, 46h-4Dh, 56h-5Dh)
-
-    writeArrayRegisters(TXB0SIDH, (uint8_t*)&buf, 8);
-
-    bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq
-
-}
-
 void MCP25625::transmitFrame(CanFrame &canFrame) {
     ESP_LOGD(TAG, "send message");
     struct alignas(32) buf {
@@ -215,9 +171,6 @@ void MCP25625::transmitFrame(CanFrame &canFrame) {
 
     writeArrayRegisters(TXB0SIDH, (uint8_t*)&buf, canFrame.length + 5);
 
-    // bitModifyRegister(reg::CANINTE, 0x80, 0x80); // MERRE
-    // frame is repeated until TXREQ is cleared
-    // bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // OSM one shot mode
     bitModifyRegister(reg::TXB0CTRL, 0x08, 0x08); // set txreq
 }
 
@@ -260,6 +213,10 @@ void MCP25625::startReceiveMessages() {
     bitModifyRegister(reg::RXB0CTRL, 0x60, 0x60); // receive any message
     // bitModifyRegister(reg::CANINTE, 0x01, 0x01); // RX0IE todo abstract
     // bitModifyRegister(reg::CANINTE, 0x04, 0x04); // TX0IE todo abstract
+
+    // frame transmit is repeated until TXREQ is cleared
+    // setting OSM eliminates TEC errors
+    bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // OSM one shot mode
     bitModifyRegister(reg::CANINTE, 0xa5, 0xa5); 
     REQOP normalMode(0); // get out of configuration mode
     bitModifyRegister(reg::CANCTRL, normalMode);
@@ -275,6 +232,8 @@ void MCP25625::startReceiveMessages() {
 SemaphoreHandle_t MCP25625::interruptSemaphore = nullptr;
 
 // interrupt handler registered for the INT GPIO pin
+// cannot use SPI in the ISR, so just pass it off to a task
+// via a semaphore
 void IRAM_ATTR MCP25625::interruptISR(void *arg) {
     MCP25625 * self = static_cast<MCP25625*>(arg);
     BaseType_t higherProrityTaskWoken = pdFALSE;
@@ -307,30 +266,33 @@ void MCP25625::interruptTask(void * pvParameters) {
             InterruptFlagsBuffer interruptFlagsBuffer;
             self->readArrayRegisters(reg::CANINTE, (uint8_t*)&interruptFlagsBuffer, sizeof(interruptFlagsBuffer));
             uint8_t icod = (interruptFlagsBuffer.canstat >> 1) & 0x07;
-            // if ((interruptFlagsBuffer.canintf & interruptFlagsBuffer.caninte) == 0) {
             if ((interruptFlagsBuffer.canintf) == 0) {
                 break;
             }
 
-            // const timestamp_t timestamp = esp_log_timestamp();
-            // const uint8_t icod = getIcod();
             const uint16_t ticksToWait = 1000;
             CanStatus canStatus;
             ESP_LOGD(TAG, "interrupt %d", icod);
-            switch (icod) { // [Register 4.35]
-                case 0: // 000 = MERR interrupt
-                    // self->getStatus(canStatus,interruptFlagsBuffer);
-                    // canStatus.icod = icod + 0x80;
-                    // ESP_LOGD(TAG, "MERR interrupt canintf: %x caninte: %x eflg %x rec %d", 
-                    //     canStatus.canintf, canStatus.caninte, canStatus.eflg, canStatus.tec);
 
-                    // // canStatus = self->getStatus();
-                    // xQueueSend(self->errorQueue, &canStatus, ticksToWait);
+            // MERR is not represented in ICOD
+            if (interruptFlagsBuffer.canintf & CANINTF::MERRF) {
+                uint8_t txb0ctrl;
+                self->readRegister(TXB0CTRL, txb0ctrl);
+                // xQueueSend(self->errorQueue, &canStatus, ticksToWait);
+                self->bitModifyRegister(CANINTF, CANINTF::MERRF, 0x00);
+                ESP_LOGW(TAG, "unhandled MERR interrupt txb0ctrl: %x canintf: %x", txb0ctrl, interruptFlagsBuffer.canintf);
+                break;
+            }
 
-                    self->bitModifyRegister(reg::TXB0CTRL, 0x08, 0x00); // TXREQ
-                    self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
-                    break;
-                case ICOD_ERR: // 001 = ERR interrupt
+            using mcp25625::REGISTERS::CANSTAT;
+
+            // ICOD is 3 bits
+            CANSTAT::ICOD ss = static_cast<mcp25625::REGISTERS::CANSTAT::ICOD>(icod & 0x07);
+            switch (ss) {
+                case CANSTAT::ICOD::NONE:
+                    break; // neer happens
+
+                case CANSTAT::ICOD::ERR:
                     // EFLG indicates: RX1OVR, RX0OVR, TXBO, TXEP, RXEP, TXWAR, RXWAR, EWARN
                     self->getStatus(canStatus,interruptFlagsBuffer);
                     canStatus.icod = icod;
@@ -340,29 +302,27 @@ void MCP25625::interruptTask(void * pvParameters) {
                     // canStatus = self->getStatus();
                     xQueueSend(self->errorQueue, &canStatus, ticksToWait);
 
-                    // self->bitModifyRegister(reg::CANINTF, 0x20, 0x00); // ERRIF
-                    // self->bitModifyRegister(reg::EFLG, 0x40, 0x00); // WAKIF
                     self->bitModifyRegister(reg::EFLG, 0xC0, 0x00); // RX1OVR, RX0OVR
-                    self->bitModifyRegister(reg::CANINTF, 0x20, 0x00); // ERRIF
+                    self->bitModifyRegister(CANINTF, CANINTF::ERRIF, 0x00); // ERRIF
                     break;
-                case 0x03: // 011 = TXB0 interrupt
-                case 0x04: // 100 = TXB1 interrupt
-                    ESP_LOGD(TAG, "TXB0 interrupt");
-
-                    self->getStatus(canStatus,interruptFlagsBuffer);
+                case CANSTAT::ICOD::WAKEUP:
+                    self->bitModifyRegister(CANINTF, CANINTF::WAKIF, 0x00);
+                    ESP_LOGW(TAG, "unhandled WAKE interrupt eflg: %x canintf: %x", interruptFlagsBuffer.eflg, interruptFlagsBuffer.canintf);
+                    break;
+                case CANSTAT::ICOD::TXB0:
+                case CANSTAT::ICOD::TXB1:
+                case CANSTAT::ICOD::TXB2:
                     canStatus.icod = icod;
 
                     xQueueSend(self->transmitFrameQueue, &canStatus, ticksToWait);
-
-                    self->bitModifyRegister(reg::CANINTF, 0x04, 0x00); // clear tx0if
-                    // self->bitModifyRegister(reg::CANINTF, 0x80, 0x00); // MERRF
+                    self->bitModifyRegister(CANINTF, CANINTF::TX0IF, 0x00);
                     break;
-                case 0x06: // 110 = RXB0 interrupt
+                case CANSTAT::ICOD::RXB0:
+                case CANSTAT::ICOD::RXB1:
                 {
                     ESP_LOGD(TAG, "RXB0 interrupt");
                     FrameBuffer frameBuffer;
-                    self->readFrameBuffer(frameBuffer);
-                    // self->bitModifyRegister(reg::CANINTF, 0x01, 0x00); // clear rx0if
+                    self->readFrameBuffer(frameBuffer); // also clears RBX0IF
 
                     // see receiveMessage()
                     receive_msg_t message;
@@ -373,8 +333,11 @@ void MCP25625::interruptTask(void * pvParameters) {
                     message.data_length_code = buf.dlc & 0x0f;
                     memcpy(message.data, buf.data, sizeof(buf.data));
 
-                    xQueueSend(self->receiveMessageQueue, &message, ticksToWait);
-                    // xQueueSend(self->receiveISRQueue, &timestamp, ticksToWait);
+                    esp_err_t err;
+                    err = xQueueSend(self->receiveMessageQueue, &message, ticksToWait);
+                    if (err != pdPASS) {
+                        ESP_LOGE(TAG, "send to receiveQueue failed: %x", err);
+                    }
                     break;
                 }
                 default:
@@ -382,10 +345,6 @@ void MCP25625::interruptTask(void * pvParameters) {
                     break;
             }
         }
-        // self->readRegister(reg::CANINTF, canStatus.canintf);
-        // if (canStatus.canintf != 0) {
-        //     ESP_LOGE(TAG, "not cleared canintf %x icod %x", canStatus.canintf, icod);
-        // }
     }
 }
 
