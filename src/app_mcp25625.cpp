@@ -29,6 +29,7 @@ void AppMcp25625::initBridge() {
     // xTaskCreatePinnedToCore(canReceiveFrameTaskFunction, "can receive task", 2048, (void*)this, 1, &canReceiveFrameTask, APP_CPU_NUM);
     xTaskCreatePinnedToCore(canTransmitFrameTaskFunction, "can transmit task", 4096, (void*)this, 1, &canTransmitFrameTask, APP_CPU_NUM);
     xTaskCreatePinnedToCore(canErrorTaskFunction, "can error task", 4096, (void*)this, 1, &canErrorTask, APP_CPU_NUM);
+    xTaskCreatePinnedToCore(receiveFrameTaskFunction, "receive frae task", 4096, (void*)this, 1, &receiveFrameTask, APP_CPU_NUM);
 }
 // deinitBridge
 
@@ -81,8 +82,6 @@ void AppMcp25625::webSocketSendTask(void * pvParameters) {
 
             if (self->httpServer.isWebsocketConnected()) {
                 static uint8_t data[payloadSize + 5];
-                // data[0] = message.identifier & 0xff;
-                // data[1] = (message.identifier >> 8) & 0xff;
                 packLittleEndian(message.identifier, &data[0]);
                 data[4] = (message.flags.srr << 0) | (message.flags.ide << 1);
                 memcpy(&data[5], message.data, message.data_length_code);
@@ -173,4 +172,23 @@ static void packLittleEndian(uint32_t identifier, uint8_t * const data) {
     data[1] = (identifier >> 8) & 0xff;
     data[2] = (identifier >> 16) & 0xff;
     data[3] = (identifier >> 24) & 0xff;
+}
+
+void AppMcp25625::receiveFrameTaskFunction(void * args) {
+    AppMcp25625 * self = static_cast<AppMcp25625*>(args);
+    ESP_LOGI(TAG, "start recieve frame websocket task");
+    const int payloadSize = 8;
+    while(true) {
+        FrameBuffer frame;
+        if (xQueueReceive(self->mcp25625.receiveFrameQueue, &frame, portMAX_DELAY)) {
+            if (self->httpServer.isWebsocketConnected()) {
+                uint8_t data[payloadSize + 5];
+                packLittleEndian(frame.getIdentifier(), &data[0]);
+                data[4] = (frame.isRemoteTransmissionRequest() ? 1 : 0) | (frame.isExtendedIdentifier() ? 2 : 0);
+                const int length = frame.getDataLength() + 5;
+                memcpy(&data[5], frame.getData(), frame.getDataLength());
+                self->httpServer.sendFrame(data, length);
+            }
+        }
+    }
 }

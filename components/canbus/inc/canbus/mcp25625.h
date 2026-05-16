@@ -30,14 +30,31 @@ struct CanStatus {
 
 // as read/written directly from/to the MCP25625
 struct alignas(32) FrameBuffer {
-        uint8_t sidh;
-        uint8_t sidl;
-        uint8_t eid8;
-        uint8_t eid0;
-        uint8_t dlc;
-        uint8_t data[8];
-        // uint8_t canstat;
-        // uint8_t canctrl;
+    uint8_t sidh;
+    uint8_t sidl;
+    uint8_t eid8;
+    uint8_t eid0;
+    uint8_t dlc;
+    uint8_t data[8];
+    // uint8_t canstat;
+    // uint8_t canctrl;
+    bool isExtendedIdentifier() { return sidl & 0x08; };
+    bool isRemoteTransmissionRequest() { return dlc & 0x40; };
+    uint32_t getIdentifier() {
+        // see getIdentifier in mcp25625
+        return isExtendedIdentifier()
+        ? 
+            ((sidh & 0xff) << 21) | 
+            ((sidl & 0xe0) << (18 - 5)) |
+            ((sidl & 0x03) << 16) |
+            ((eid8 & 0xff) << 8) |
+            ((eid0 & 0xff) << 0)
+        : 
+            ((sidh & 0xff) << 3) |
+            ((sidl & 0xe0) >> 5);
+        };
+    uint8_t getDataLength() { return dlc & 0x0f; };
+    uint8_t * getData() { return &data[0]; };
 };
 
 struct InterruptFlagsBuffer {
@@ -55,6 +72,7 @@ public:
     QueueHandle_t receiveMessageQueue;
     QueueHandle_t transmitFrameQueue;
     QueueHandle_t errorQueue;
+    QueueHandle_t receiveFrameQueue;
 
     void init();
     void deinit();
@@ -110,8 +128,6 @@ private:
         ICOD_RXB = 7,
     };
 
-
-    void readFrameBuffer(FrameBuffer &frameBuffer);
     void writeFrameBuffer(FrameBuffer &frameBuffer);
 
     intr_handle_t receiveInterruptHandle;
@@ -190,6 +206,17 @@ namespace mcp25625 {
                 RXB1 =      7,
             } ;
         };
+        struct CANINTE {
+            operator const uint8_t() { return 0x2b; };
+            static const uint8_t MERRE = 0x80;
+            static const uint8_t WAKIE = 0x40;
+            static const uint8_t ERRIE = 0x20;
+            static const uint8_t TX2IE = 0x10;
+            static const uint8_t TX1IE = 0x08;
+            static const uint8_t TX0IE = 0x04;
+            static const uint8_t RX1IE = 0x02;
+            static const uint8_t RX0IE = 0x01; 
+        };
         struct CANINTF {
             operator const uint8_t() { return 0x2c; };
             static const uint8_t MERRF = 0x80;
@@ -200,6 +227,10 @@ namespace mcp25625 {
             static const uint8_t TX0IF = 0x04;
             static const uint8_t RX1IF = 0x02;
             static const uint8_t RX0IF = 0x01; 
+        };
+        struct RXB0CTRL {
+            operator const uint8_t() { return 0x60; };
+            static const uint8_t BUKT = 0x04;
         };
     }
 }

@@ -29,8 +29,12 @@ private:
 
     TimerHandle_t heartbeatTimer;
     static void heartbeatFunction(tmrTimerControl*);
+
     TimerHandle_t canStatusTimer;
     static void canStatusFunction(TimerHandle_t xTimer);
+
+    TaskHandle_t receiveFrameTask;
+    static void receiveFrameTaskFunction(void* pvParamters);
 
     Fuzzer *fuzzerTask;
 };

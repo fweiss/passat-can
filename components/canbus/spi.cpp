@@ -184,7 +184,8 @@ void SPI::readArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count
 }
 
 // use SPI instructio that clears relevant flag in CANINTF
-void SPI::readBufferRegisters(uint8_t rxBufferIndex, uint8_t * data, uint8_t count) {
+// todo use enu, for selector
+void SPI::readBufferRegisters(uint8_t selector, uint8_t * data, uint8_t count) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
         ESP_LOGE(TAG, "readBufferRegisters transactionMutex timeout");
         return;
@@ -194,7 +195,7 @@ void SPI::readBufferRegisters(uint8_t rxBufferIndex, uint8_t * data, uint8_t cou
 
     spi_transaction_ext_t transaction_ext {};
     spi_transaction_t & transaction = transaction_ext.base;
-    transaction.cmd = 0x90; // | ((rxBufferIndex << 1) | 0x01);
+    transaction.cmd = 0x90 | ((selector & 0x03) << 1); // see Fig. 5-3
     transaction.flags = SPI_TRANS_VARIABLE_ADDR;
     transaction.rx_buffer = data;
     transaction.length = 8 * count;
@@ -209,7 +210,7 @@ void SPI::readBufferRegisters(uint8_t rxBufferIndex, uint8_t * data, uint8_t cou
 
 void SPI::writeArrayRegisters(uint8_t startAddress, uint8_t * data, uint8_t count) {
     if (xSemaphoreTake(transactionMutex, transactionMutexBlockTime) == pdFALSE) {
-        ESP_LOGE(TAG, "writeArrayRegisters transactionMutex timeout");
+        ESP_LOGE(TAG, "readBufferRegisters transactionMutex timeout");
         return;
     }
 

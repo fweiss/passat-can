@@ -10,6 +10,8 @@
 static char const * const TAG = "mcp25625";
 
 using mcp25625::REGISTERS::CANINTF;
+using mcp25625::REGISTERS::RXB0CTRL;
+using mcp25625::REGISTERS::CANINTE;
 
 // forward
 static uint32_t getIdentifier(uint8_t sidh, uint8_t sidl, uint8_t eid8, uint8_t eid0);
@@ -18,9 +20,11 @@ MCP25625::MCP25625() {
     // debug will increase ISR latency
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
+    // depreacted, use receiveFrameQueue
     receiveMessageQueue = xQueueCreate(20, sizeof(receive_msg_t));
     transmitFrameQueue = xQueueCreate(20, sizeof(CanStatus));
     errorQueue = xQueueCreate(20, sizeof(CanStatus));
+    receiveFrameQueue = xQueueCreate(20, sizeof(FrameBuffer));
 
     interruptSemaphore = xSemaphoreCreateBinary();
     xTaskCreatePinnedToCore(interruptTask, "interrupt task", 4048, this, 5, NULL, APP_CPU_NUM);
@@ -83,8 +87,8 @@ void MCP25625::attachInterrupt() {
         ESP_LOGE(TAG, "isr handler add err: %x", err);
     }
 
-    // enable interrupts
-    bitModifyRegister(reg::CANINTE, 0xa5, 0xa5); // MERRIE, ERRIE, RX0IE, TX0IE
+    // enable interrupts see also startReceiveMessages
+    // bitModifyRegister(reg::CANINTE, 0xa5, 0xa5); // MERRIE, ERRIE, RX0IE, TX0IE
     bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // one shot mode
 }
 void MCP25625::detachReceiveInterrupt() {
@@ -131,13 +135,6 @@ bool MCP25625::receiveMessage(receive_msg_t * message) {
     return true; // todo no longer needed
 }
 
-// todo parameterize RXn, use special SPI command
-void MCP25625::readFrameBuffer(FrameBuffer &frameBuffer) {
-    // readArrayRegisters(RXB0SIDH, (uint8_t*)&frameBuffer, sizeof(frameBuffer));
-    // todo parameterize the receive buffer index
-    uint8_t rxBufferIndex = 0;
-    readBufferRegisters(rxBufferIndex, (uint8_t*)&frameBuffer, sizeof(frameBuffer));
-}
 // todo parameterize TXn, use special SPI command
 void MCP25625::writeFrameBuffer(FrameBuffer &frameBuffer) {
     writeArrayRegisters(TXB0SIDH, (uint8_t*)&frameBuffer, sizeof(frameBuffer));
@@ -217,7 +214,11 @@ void MCP25625::startReceiveMessages() {
     // frame transmit is repeated until TXREQ is cleared
     // setting OSM eliminates TEC errors
     bitModifyRegister(reg::CANCTRL, 0x08, 0x08); // OSM one shot mode
-    bitModifyRegister(reg::CANINTE, 0xa5, 0xa5); 
+    // bitModifyRegister(reg::CANINTE, 0xa5, 0xa5); 
+    const uint8_t mask = CANINTE::MERRE | CANINTE::ERRIE | CANINTE::RX0IE | CANINTE::RX1IE | CANINTE:: TX0IE;
+    bitModifyRegister(CANINTE, mask, 0xff);
+    bitModifyRegister(RXB0CTRL, RXB0CTRL::BUKT, 0xff);
+
     REQOP normalMode(0); // get out of configuration mode
     bitModifyRegister(reg::CANCTRL, normalMode);
     bitModifyRegister(reg::EFLG, 0x40, 0x00);
@@ -257,6 +258,7 @@ void MCP25625::interruptTask(void * pvParameters) {
     MCP25625 * self = static_cast<MCP25625*>(pvParameters);
 
     BaseType_t status;
+    uint8_t selector;
     while (true) {
         // block and wait for an interrupt
         // todo no timeout, but check status
@@ -317,26 +319,17 @@ void MCP25625::interruptTask(void * pvParameters) {
                     xQueueSend(self->transmitFrameQueue, &canStatus, ticksToWait);
                     self->bitModifyRegister(CANINTF, CANINTF::TX0IF, 0x00);
                     break;
-                case CANSTAT::ICOD::RXB0:
                 case CANSTAT::ICOD::RXB1:
+                case CANSTAT::ICOD::RXB0:
                 {
-                    ESP_LOGD(TAG, "RXB0 interrupt");
+                    selector = (ss == CANSTAT::ICOD::RXB0 ? 0x00 : 0x02);
                     FrameBuffer frameBuffer;
-                    self->readFrameBuffer(frameBuffer); // also clears RBX0IF
-
-                    // see receiveMessage()
-                    receive_msg_t message;
-                    FrameBuffer & buf = frameBuffer;
-                    message.identifier = getIdentifier(buf.sidh, buf.sidl, buf.eid8, buf.eid0);
-                    message.flags.srr = SRR::of(buf.sidl);
-                    message.flags.ide = IDE::of(buf.sidl);
-                    message.data_length_code = buf.dlc & 0x0f;
-                    memcpy(message.data, buf.data, sizeof(buf.data));
-
+                    // also clears RX0IF/RX1IF
+                    self->readBufferRegisters(selector, (uint8_t*)&frameBuffer, sizeof(frameBuffer));
                     esp_err_t err;
-                    err = xQueueSend(self->receiveMessageQueue, &message, ticksToWait);
+                    err = xQueueSend(self->receiveFrameQueue, &frameBuffer, ticksToWait);
                     if (err != pdPASS) {
-                        ESP_LOGE(TAG, "send to receiveQueue failed: %x", err);
+                        ESP_LOGE(TAG, "send to receiveFrameQueue failed: %x", err);
                     }
                     break;
                 }
