@@ -15,6 +15,15 @@ Other callouts on wiring diagrams:
 
 > The one I got appears to be J387?
 
+### Two modules
+I got two modules. I thik I burned out the first one
+and got a sencond one
+- 5Q0 959 592 D (left?)
+- 5Q0 959 593 E (right?)
+
+The PCBs are ver much alike, except that one has more pins and populated IC
+pads.
+
 ## Receive
 When the module is powered up it emits some frames for five seconds.
 The CAN bus is at 500 kbps.
