@@ -25,7 +25,8 @@ void AppMcp25625::initBridge() {
     heartbeatTimer = xTimerCreate("can heartbeat", timerPeriod, autoReload, nullptr, heartbeatFunction);
     canStatusTimer = xTimerCreate("can status", timerPeriod, true, (void*)this, canStatusFunction);
     // fuzzerTask = new Fuzzer(&mcp25625);
-    new KeepAlive(&mcp25625);
+    // new KeepAlive(&mcp25625);
+    KeepAlive::simulatedGateway(&mcp25625);
 
     // todo check error
     // xTaskCreatePinnedToCore(canReceiveFrameTaskFunction, "can receive task", 2048, (void*)this, 1, &canReceiveFrameTask, APP_CPU_NUM);
