@@ -1,6 +1,7 @@
 #include "app_mcp25625.h"
 #include "indicator.h"
 #include "mcp25625.h"
+#include "keepalive.hpp"
 
 #define LOG_LOCAL_LEVEL ESP_LOG_INFO
 #include "esp_log.h"
@@ -23,7 +24,9 @@ void AppMcp25625::initBridge() {
     const bool autoReload = false;
     heartbeatTimer = xTimerCreate("can heartbeat", timerPeriod, autoReload, nullptr, heartbeatFunction);
     canStatusTimer = xTimerCreate("can status", timerPeriod, true, (void*)this, canStatusFunction);
-    fuzzerTask = new Fuzzer(&mcp25625);
+    // fuzzerTask = new Fuzzer(&mcp25625);
+    // new KeepAlive(&mcp25625);
+    KeepAlive::simulatedGateway(&mcp25625);
 
     // todo check error
     // xTaskCreatePinnedToCore(canReceiveFrameTaskFunction, "can receive task", 2048, (void*)this, 1, &canReceiveFrameTask, APP_CPU_NUM);
